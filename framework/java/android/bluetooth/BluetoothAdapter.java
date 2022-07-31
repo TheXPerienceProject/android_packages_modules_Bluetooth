@@ -49,6 +49,8 @@ import android.annotation.SdkConstant.SdkConstantType;
 import android.annotation.SuppressLint;
 import android.annotation.SystemApi;
 import android.app.PendingIntent;
+import android.app.compat.gms.GmsCompat;
+import android.app.compat.gms.GmsModuleHooks;
 import android.bluetooth.BluetoothDevice.AddressType;
 import android.bluetooth.BluetoothDevice.Transport;
 import android.bluetooth.annotations.RequiresBluetoothAdvertisePermission;
@@ -1425,6 +1427,14 @@ public final class BluetoothAdapter {
         if (!isBleScanAlwaysAvailable()) {
             return false;
         }
+
+        if (GmsCompat.isEnabled()) {
+            Boolean res = GmsModuleHooks.enableBluetoothAdapter();
+            if (res != null) {
+                return res.booleanValue();
+            }
+        }
+
         try {
             return mManagerService.enableBle(mAttributionSource, mToken);
         } catch (RemoteException e) {
@@ -1497,6 +1507,12 @@ public final class BluetoothAdapter {
     @RequiresLegacyBluetoothPermission
     @RequiresNoPermission
     public @AdapterState int getState() {
+        if (GmsCompat.isEnabled()) {
+            if (!GmsCompat.hasPermission(android.Manifest.permission.BLUETOOTH_SCAN)) {
+                return BluetoothAdapter.STATE_OFF;
+            }
+        }
+
         int state = sBluetoothGetSystemStateCache.query(null);
 
         // Consider all internal states as OFF
@@ -1530,6 +1546,12 @@ public final class BluetoothAdapter {
                     "Use {@link #getState()} instead to determine "
                             + "whether you can use BLE & BT classic.")
     public @InternalAdapterState int getLeState() {
+        if (GmsCompat.isEnabled()) {
+            if (!GmsCompat.hasPermission(android.Manifest.permission.BLUETOOTH_SCAN)) {
+                return BluetoothAdapter.STATE_OFF;
+            }
+        }
+
         int state = sBluetoothGetSystemStateCache.query(null);
         return state;
     }
@@ -1593,6 +1615,14 @@ public final class BluetoothAdapter {
             Log.d(TAG, "enable(): BT already enabled!");
             return true;
         }
+
+        if (GmsCompat.isEnabled()) {
+            Boolean res = GmsModuleHooks.enableBluetoothAdapter();
+            if (res != null) {
+                return res.booleanValue();
+            }
+        }
+
         if (Flags.systemServerMessenger()) {
             var data = new SystemServiceMessage.Enable();
             data.attributionSource = mAttributionSource;
@@ -1881,6 +1911,19 @@ public final class BluetoothAdapter {
                 && mode != SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
             throw new IllegalArgumentException("Invalid scan mode param value");
         }
+
+        if (GmsCompat.isEnabled()) {
+            boolean proceed = GmsCompat.hasPermission(android.Manifest.permission.BLUETOOTH_SCAN)
+                    && GmsCompat.hasPermission(android.Manifest.permission.BLUETOOTH_PRIVILEGED);
+
+            if (!proceed) {
+                if (mode != SCAN_MODE_NONE) {
+                    GmsModuleHooks.makeBluetoothAdapterDiscoverable();
+                }
+                return BluetoothStatusCodes.SUCCESS;
+            }
+        }
+
         return callServiceIfEnabled(
                 s -> s.setScanMode(mode, mAttributionSource), BluetoothStatusCodes.ERROR_UNKNOWN);
     }
@@ -4456,6 +4499,8 @@ public final class BluetoothAdapter {
         mServiceLock.readLock().lock();
         try {
             mBluetoothConnectionCallbackWrapper.registerCallback(mService, callback, executor);
+        } catch (SecurityException se) {
+            GmsCompat.catchOrRethrow(se);
         } finally {
             mServiceLock.readLock().unlock();
         }
@@ -4481,6 +4526,8 @@ public final class BluetoothAdapter {
         mServiceLock.readLock().lock();
         try {
             mBluetoothConnectionCallbackWrapper.unregisterCallback(mService, callback);
+        } catch (SecurityException se) {
+            GmsCompat.catchOrRethrow(se);
         } finally {
             mServiceLock.readLock().unlock();
         }

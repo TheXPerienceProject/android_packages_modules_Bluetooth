@@ -25,6 +25,7 @@ import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.RequiresNoPermission;
 import android.annotation.RequiresPermission;
+import android.app.compat.gms.GmsCompat;
 import android.bluetooth.annotations.RequiresBluetoothConnectPermission;
 import android.bluetooth.annotations.RequiresLegacyBluetoothPermission;
 import android.content.AttributionSource;
@@ -625,6 +626,9 @@ public final class BluetoothGattServer implements BluetoothProfile {
             } catch (RemoteException e) {
                 Log.e(TAG, "", e);
                 mCallback = null;
+                return false;
+            } catch (SecurityException se) {
+                GmsCompat.catchOrRethrow(se);
                 return false;
             }
 
