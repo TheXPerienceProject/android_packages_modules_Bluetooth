@@ -86,7 +86,7 @@ struct AudioSetConfigurationProviderJson {
             {"Media", types::LeAudioContextType::MEDIA},
             {"Conversational", types::LeAudioContextType::RINGTONE},
             {"Conversational", types::LeAudioContextType::CONVERSATIONAL},
-            {"Recording", types::LeAudioContextType::LIVE},
+            {"Live", types::LeAudioContextType::LIVE},
             {"Game", types::LeAudioContextType::GAME},
             {"VoiceAssistants", types::LeAudioContextType::VOICEASSISTANTS},
         };
@@ -106,6 +106,8 @@ struct AudioSetConfigurationProviderJson {
         FALLTHROUGH_INTENDED;
       case types::LeAudioContextType::UNSPECIFIED:
         FALLTHROUGH_INTENDED;
+      case types::LeAudioContextType::SOUNDEFFECTS:
+        FALLTHROUGH_INTENDED;
       case types::LeAudioContextType::MEDIA:
         return "Media";
       case types::LeAudioContextType::RINGTONE:
@@ -113,11 +115,11 @@ struct AudioSetConfigurationProviderJson {
       case types::LeAudioContextType::CONVERSATIONAL:
         return "Conversational";
       case types::LeAudioContextType::LIVE:
-        return "Recording";
+        return "Live";
       case types::LeAudioContextType::GAME:
         return "Game";
       case types::LeAudioContextType::VOICEASSISTANTS:
-        return "VoiceAssinstants";
+        return "VoiceAssistants";
       default:
         return kDefaultScenario;
     }
