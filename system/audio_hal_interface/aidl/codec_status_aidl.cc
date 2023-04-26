@@ -25,6 +25,7 @@
 #include "a2dp_vendor_aptx_constants.h"
 #include "a2dp_vendor_aptx_hd_constants.h"
 #include "a2dp_vendor_ldac_constants.h"
+#include "a2dp_vendor_lhdc_constants.h"
 #include "bta/av/bta_av_int.h"
 #include "client_interface_aidl.h"
 
@@ -518,6 +519,12 @@ bool A2dpOpusToHalConfig(CodecConfiguration* codec_config,
   return true;
 }
 
+// Savitech Patch - START (non-Offload only)
+bool A2dpLhdcv5ToHalConfig(CodecConfiguration* codec_config,
+                           A2dpCodecConfig* a2dp_config) {
+  return true;
+}
+
 bool UpdateOffloadingCapabilities(
     const std::vector<btav_a2dp_codec_config_t>& framework_preference) {
   audio_hal_capabilities =
@@ -552,6 +559,7 @@ bool UpdateOffloadingCapabilities(
         LOG(WARNING) << __func__
                      << ": Ignore sink codec_type=" << preference.codec_type;
         break;
+      case BTAV_A2DP_CODEC_INDEX_SOURCE_LC3:
       case BTAV_A2DP_CODEC_INDEX_MAX:
         [[fallthrough]];
       default:

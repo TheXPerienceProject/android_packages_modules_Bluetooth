@@ -23,7 +23,9 @@ apex {
 
     native_shared_libs: [
       "libbluetooth_jni",
-      "libbluetooth"
+      "libbluetooth",
+      "liblhdcBT_enc",
+      "liblhdcv5BT_enc"
     ],
     apps: ["Bluetooth"],
 
