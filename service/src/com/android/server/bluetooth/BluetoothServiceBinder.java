@@ -32,6 +32,7 @@ import android.bluetooth.IBluetoothManager;
 import android.bluetooth.IBluetoothManagerCallback;
 import android.content.AttributionSource;
 import android.content.Context;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -160,7 +161,10 @@ public class BluetoothServiceBinder extends IBluetoothManager.Stub {
             return null;
         }
 
-        if (mContext.checkCallingOrSelfPermission(LOCAL_MAC_ADDRESS) != PERMISSION_GRANTED) {
+        if (mContext.checkCallingOrSelfPermission(LOCAL_MAC_ADDRESS) != PERMISSION_GRANTED
+                // wired Android Auto doesn't ask for full LOCAL_MAC_ADDRESS permission but needs
+                // the Bluetooth adapter hardware address for pairing to hands-free audio car system
+                && !isPrivilegedAndroidAuto(Binder.getCallingPid(), Binder.getCallingUid())) {
             // TODO(b/280890575): Throws a SecurityException instead
             Log.w(TAG, "getAddress(): Client does not have LOCAL_MAC_ADDRESS permission");
             return IBluetoothManager.DEFAULT_MAC_ADDRESS;
@@ -222,7 +226,8 @@ public class BluetoothServiceBinder extends IBluetoothManager.Stub {
                         mPermissionManager,
                         "enable",
                         true);
-        if (!errorMsg.isEmpty()) {
+        /* see android.bluetooth.BluetoothAdapter#enable */
+        if (!errorMsg.isEmpty() && !isPrivilegedAndroidAuto(Binder.getCallingPid(), Binder.getCallingUid())) {
             Log.d(TAG, "enable(): FAILED: " + errorMsg);
             return false;
         }
@@ -313,7 +318,8 @@ public class BluetoothServiceBinder extends IBluetoothManager.Stub {
                         mPermissionManager,
                         "disable",
                         true);
-        if (!errorMsg.isEmpty()) {
+        /* see android.bluetooth.BluetoothAdapter#disable */
+        if (!errorMsg.isEmpty() && !isPrivilegedAndroidAuto(Binder.getCallingPid(), Binder.getCallingUid())) {
             Log.d(TAG, "disable(): FAILED: " + errorMsg);
             return false;
         }
@@ -444,5 +450,11 @@ public class BluetoothServiceBinder extends IBluetoothManager.Stub {
         }
 
         postFromBinder(() -> mApi.dump(fd, writer, args));
+    }
+
+    @android.annotation.SuppressLint("AndroidFrameworkRequiresPermission")
+    private boolean isPrivilegedAndroidAuto(int pid, int uid) {
+        String perm = android.Manifest.permission.BLUETOOTH_PRIVILEGED_ANDROID_AUTO;
+        return mContext.checkPermission(perm, pid, uid) == PERMISSION_GRANTED;
     }
 }

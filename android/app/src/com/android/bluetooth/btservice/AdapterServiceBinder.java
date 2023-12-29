@@ -647,7 +647,13 @@ class AdapterServiceBinder extends IBluetooth.Stub {
             return Collections.emptyList();
         }
 
-        service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+        try {
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+        } catch (SecurityException e) {
+            /* see android.bluetooth.BluetoothAdapter#getActiveDevices */
+            Utils.enforceBluetoothPrivilegedAndroidAutoOrThrow(service, e);
+        }
+
         return service.getActiveDevices(profile);
     }
 
@@ -951,7 +957,12 @@ class AdapterServiceBinder extends IBluetooth.Stub {
             return false;
         }
 
-        service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+        try {
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+        } catch (SecurityException e) {
+            /* see android.bluetooth.BluetoothDevice#setPairingConfirmation */
+            Utils.enforceBluetoothPrivilegedAndroidAutoOrThrow(service, e);
+        }
 
         DeviceProperties deviceProp = service.getRemoteDevices().getDeviceProperties(device);
         if (deviceProp == null || !deviceProp.isBonding()) {
@@ -1420,7 +1431,13 @@ class AdapterServiceBinder extends IBluetooth.Stub {
             return false;
         }
 
-        service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+        try {
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+        } catch (SecurityException e) {
+            /* see android.bluetooth.BluetoothDevice#setMetadata */
+            Utils.enforceBluetoothPrivilegedAndroidAutoOrThrow(service, e);
+        }
+
         return service.setMetadata(device, key, value);
     }
 
@@ -1433,7 +1450,13 @@ class AdapterServiceBinder extends IBluetooth.Stub {
             return null;
         }
 
-        service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+        try {
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+        } catch (SecurityException e) {
+            /* see android.bluetooth.BluetoothDevice#getMetadata */
+            Utils.enforceBluetoothPrivilegedAndroidAutoOrThrow(service, e);
+        }
+
         return service.getMetadata(device, key);
     }
 
