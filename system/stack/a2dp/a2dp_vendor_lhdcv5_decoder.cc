@@ -60,7 +60,7 @@ typedef struct {
 
   uint32_t    sample_rate;
   uint8_t     bits_per_sample;
-  lhdc_ver_t  version;
+  lhdcv5_ver_t  version;
   uint8_t     func_ar;
   uint8_t     func_jas;
   uint8_t     func_meta;
