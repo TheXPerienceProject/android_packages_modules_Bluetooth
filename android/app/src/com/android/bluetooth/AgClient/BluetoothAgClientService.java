@@ -94,7 +94,6 @@ public class BluetoothAgClientService extends Service {
    private int mCallState = CALL_STATE_IDLE;
    private String mRingingAddress = "";
    private String mRingingName = null;
-   private boolean isOutgoingCall = false;
    private boolean mSendFakeIndicatorsDuringSlc = false;
    private int mSendFakeEvent;
 
@@ -208,7 +207,6 @@ public class BluetoothAgClientService extends Service {
         mHandlerThread = null;
      }
      sBluetoothAgClientService = null;
-     isOutgoingCall = false;
      mCallState = CALL_STATE_IDLE;
      mRingingName = null;
      mNumActiveCalls = 0;
@@ -461,18 +459,12 @@ public class BluetoothAgClientService extends Service {
                 break;
              case CALL_HELD_INDICATORS:
                if (HeadsetService.getHeadsetService() != null) {
-                  if (isOutgoingCall) {
-                      HeadsetService.getHeadsetService().phoneStateChanged(mNumActiveCalls = 0, mNumHeldCalls = 0,
-                                                          mCallState = CALL_STATE_DIALING, 
-                                                          mRingingAddress = "", mRingingAddressType, mRingingName, false);
-                      HeadsetService.getHeadsetService().phoneStateChanged(mNumActiveCalls = 0, mNumHeldCalls = 0,
-                                                          mCallState = CALL_STATE_ALERTING, 
-                                                          mRingingAddress = "", mRingingAddressType, mRingingName, false);
-                   } else {
-                      HeadsetService.getHeadsetService().phoneStateChanged(mNumActiveCalls = 0, mNumHeldCalls = 0,
-                                                          mCallState = CALL_STATE_INCOMING, 
-                                                          mRingingAddress = "", mRingingAddressType, mRingingName, false);
-                  }
+                   HeadsetService.getHeadsetService().phoneStateChanged(mNumActiveCalls = 0, mNumHeldCalls = 0,
+                                                       mCallState = CALL_STATE_DIALING, 
+                                                       mRingingAddress = "", mRingingAddressType, mRingingName, false);
+                   HeadsetService.getHeadsetService().phoneStateChanged(mNumActiveCalls = 0, mNumHeldCalls = 0,
+                                                       mCallState = CALL_STATE_ALERTING, 
+                                                       mRingingAddress = "", mRingingAddressType, mRingingName, false);
                }
               break;
            }
@@ -492,11 +484,9 @@ public class BluetoothAgClientService extends Service {
                     if (call.isOutgoing()) {
                         Log.e(TAG, "call direction is outgoing");
                         mRingingName = call.getNumber();
-                        isOutgoingCall = true;
                         return true;
                     } else {
                         Log.e(TAG, "call direction is incoming");
-                        isOutgoingCall = false;
                     }
                     break;
                   case CALL_STATE_DIALING:
