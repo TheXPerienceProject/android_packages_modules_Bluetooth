@@ -441,23 +441,17 @@ public class BluetoothAgClientService extends Service {
            switch(event) {
              case INCOMING_INDICATORS:
              case OUTGOING_INDICATORS:
-                break;
+               break;
              case CALL_ACTIVE_INDICATORS:
                 if (HeadsetService.getHeadsetService() != null) {
-                   if (isOutgoingCall) {
-                      HeadsetService.getHeadsetService().phoneStateChanged(mNumActiveCalls = 0, mNumHeldCalls = 0,
-                                                          mCallState = CALL_STATE_DIALING, 
-                                                          mRingingAddress = "", mRingingAddressType, mRingingName, false);
-                      HeadsetService.getHeadsetService().phoneStateChanged(mNumActiveCalls = 0, mNumHeldCalls = 0,
-                                                          mCallState = CALL_STATE_ALERTING, 
-                                                          mRingingAddress = "", mRingingAddressType, mRingingName, false);
-                   } else {
-                      HeadsetService.getHeadsetService().phoneStateChanged(mNumActiveCalls = 0, mNumHeldCalls = 0,
-                                                          mCallState = CALL_STATE_INCOMING, 
-                                                          mRingingAddress = "", mRingingAddressType, mRingingName, false);
-                   }
+                   HeadsetService.getHeadsetService().phoneStateChanged(mNumActiveCalls = 0, mNumHeldCalls = 0,
+                                                       mCallState = CALL_STATE_DIALING,
+                                                       mRingingAddress = "", mRingingAddressType, mRingingName, false);
+                   HeadsetService.getHeadsetService().phoneStateChanged(mNumActiveCalls = 0, mNumHeldCalls = 0,
+                                                       mCallState = CALL_STATE_ALERTING,
+                                                       mRingingAddress = "", mRingingAddressType, mRingingName, false);
                 }
-                break;
+              break;
              case CALL_END_INDICATORS:
                 if (HeadsetService.getHeadsetService() != null) {
                    HeadsetService.getHeadsetService().phoneStateChanged(mNumActiveCalls = 0, mNumHeldCalls = 0, 
