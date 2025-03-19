@@ -16,6 +16,7 @@
 
 package android.bluetooth;
 
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SystemApi;
@@ -66,15 +67,12 @@ public final class BluetoothCodecType implements Parcelable {
      */
     public static final long CODEC_ID_LHDCV3 = 0x334c3a05fL;
 
-    /**
-     * LHDCV5 codec identifier
-     *
-     * @hide
-     */
-    public static final long CODEC_ID_LHDCV5 = 0x354c3a05ffL;
-
     /** Opus codec identifier. See {@link BluetoothCodecType#getCodecId}. */
     public static final long CODEC_ID_OPUS = 0x000100e0ff;
+
+    /** LHDC codec identifier. See {@link BluetoothCodecType#getCodecId}. */
+    @FlaggedApi(Flags.FLAG_A2DP_LHDC_API)
+    public static final long CODEC_ID_LHDCV5 = 0x4c35_053a_ffL;
 
     /**
      * Create the bluetooth codec type from the static codec type index.
