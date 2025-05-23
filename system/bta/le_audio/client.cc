@@ -5327,6 +5327,10 @@ public:
     }
   }
 
+  void OnSetSenderStateRelease(void) {
+    audio_sender_state_ = AudioState::READY_TO_RELEASE;
+  }
+
   void OnLocalAudioSinkSuspend() {
     log::info("active group_id: {}, IN: audio_receiver_state_: {}, audio_sender_state_: {}",
               active_group_id_, ToString(audio_receiver_state_), ToString(audio_sender_state_));
@@ -7715,6 +7719,10 @@ public:
     if (instance) {
       instance->UpdateMetadataCb(state, cig_id, cis_id, data);
     }
+  }
+
+  void OnSetSenderStateRelease() override {
+    if (instance) instance->OnSetSenderStateRelease();
   }
 };
 
