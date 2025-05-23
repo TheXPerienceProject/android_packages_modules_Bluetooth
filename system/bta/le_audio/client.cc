@@ -5382,6 +5382,13 @@ public:
         CancelLocalAudioSinkStreamingRequest();
         return;
       }
+    } else {
+      if (LeAudioBroadcaster::IsLeAudioBroadcasterRunning() &&
+          LeAudioBroadcaster::Get()->IsLeAudioBroadcastStreaming()) {
+        log::info("Broadcast is streaming, cancel local sink stream request");
+        CancelLocalAudioSinkStreamingRequest();
+        return;
+      }
     }
 
     /* Note: This callback is from audio hal driver.
