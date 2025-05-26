@@ -13,7 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+/*
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
 package com.android.bluetooth.btservice;
 
 import static android.bluetooth.BluetoothProfile.CONNECTION_POLICY_ALLOWED;
@@ -50,6 +54,7 @@ import com.android.bluetooth.flags.Flags;
 import com.android.bluetooth.hearingaid.HearingAidService;
 import com.android.bluetooth.hfp.HeadsetService;
 import com.android.bluetooth.le_audio.LeAudioService;
+import com.android.bluetooth.le_audio.CallAudio;
 import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
 
@@ -787,6 +792,11 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                             + device
                             + ", mHfpActiveDevice="
                             + mHfpActiveDevice);
+            CallAudio mCallAudio = CallAudio.get();
+            if (mCallAudio != null && isVoipLeaWarEnabled()) {
+                mCallAudio.updateActiveDevice(device, mCallAudio.HFP);
+            }
+
             if (!Objects.equals(mHfpActiveDevice, device)) {
                 if (device != null) {
                     setHearingAidActiveDevice(null, true);
@@ -876,6 +886,10 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                             + device
                             + ", mLeAudioActiveDevice="
                             + mLeAudioActiveDevice);
+            CallAudio mCallAudio = CallAudio.get();
+            if (mCallAudio != null && isVoipLeaWarEnabled()) {
+                mCallAudio.updateActiveDevice(device, mCallAudio.LE_AUDIO_VOICE);
+            }
 
             if (device != null && !mLeAudioConnectedDevices.contains(device)) {
                 Log.w(
@@ -890,7 +904,9 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
             if (device != null && !Objects.equals(mLeAudioActiveDevice, device)) {
                 if (!Utils.isDualModeAudioEnabled()) {
                     setA2dpActiveDevice(null, true);
-                    setHfpActiveDevice(null);
+                    if (mHfpActiveDevice != null) {
+                        setHfpActiveDevice(null);
+                    }
                 } else {
                     boolean isCsipSupported = Utils.arrayContains(mAdapterService.getRemoteUuids(device),
                                                        BluetoothUuid.COORDINATED_SET);
@@ -1569,5 +1585,13 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
         setHearingAidActiveDevice(null, true);
         setLeAudioActiveDevice(null, true);
         stopBroadcastingAudio();
+    }
+
+    boolean isVoipLeaWarEnabled() {
+        CallAudio mCallAudio = CallAudio.get();
+        if (mCallAudio != null) {
+            return mCallAudio.isVoipLeaWarEnabled();
+        }
+        return false;
     }
 }
