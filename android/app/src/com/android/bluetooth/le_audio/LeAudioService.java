@@ -228,6 +228,7 @@ public class LeAudioService extends ProfileService {
     Optional<Boolean> mQueuedInCallValue = Optional.empty();
     Optional<Integer> mBroadcastIdPendingStart = Optional.empty();
     Optional<Integer> mBroadcastIdPendingStop = Optional.empty();
+    Optional<Integer> mUnicastSourceStreamStatus = Optional.empty();
     BluetoothDevice mAudioManagerAddedOutDevice = null;
     boolean mInCall = false;
     boolean mTmapStarted = false;
@@ -838,6 +839,7 @@ public class LeAudioService extends ProfileService {
         mBroadcastIdPendingStart = Optional.empty();
         mBroadcastIdPendingStop = Optional.empty();
         mAudioManagerAddedOutDevice = null;
+        mUnicastSourceStreamStatus = Optional.empty();
 
         // Set the service and BLE devices as inactive
         setLeAudioService(null);
@@ -1737,6 +1739,7 @@ public class LeAudioService extends ProfileService {
         } else {
             if (mIsSourceStreamMonitorModeEnabled) {
                 mNativeInterface.setUnicastMonitorMode(LeAudioStackEvent.DIRECTION_SOURCE, false);
+                mUnicastSourceStreamStatus = Optional.empty();
             }
 
             mIsSourceStreamMonitorModeEnabled = false;
@@ -3292,6 +3295,12 @@ public class LeAudioService extends ProfileService {
             mNativeInterface.setUnicastMonitorMode(LeAudioStackEvent.DIRECTION_SOURCE, false);
         }
 
+        mUnicastSourceStreamStatus = Optional.of(status);
+        if (status == LeAudioStackEvent.STATUS_LOCAL_STREAM_SUSPENDED
+                && !isBroadcastAllowedToBeActivateInCurrentAudioMode()) {
+            Log.w(TAG, "handleSourceStreamStatusChange: broadcast not allowed in current mode");
+            return;
+        }
         bassClientService.handleUnicastSourceStreamStatusChange(status);
     }
 
@@ -5457,6 +5466,12 @@ public class LeAudioService extends ProfileService {
                     handleUnicastStreamStatusChange(
                             LeAudioStackEvent.DIRECTION_SINK,
                             LeAudioStackEvent.STATUS_LOCAL_STREAM_SUSPENDED);
+                }
+
+                if (mUnicastSourceStreamStatus.isPresent()
+                        && (mUnicastSourceStreamStatus.get()
+                        == LeAudioStackEvent.STATUS_LOCAL_STREAM_SUSPENDED)) {
+                    handleSourceStreamStatusChange(mUnicastSourceStreamStatus.get());
                 }
                 break;
             default:
