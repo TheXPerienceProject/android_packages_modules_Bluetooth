@@ -114,6 +114,7 @@ public class A2dpService extends ProfileService {
     private final boolean mA2dpOffloadEnabled;
     private final boolean mAlsDisabled;
     private final boolean mA2dpCodecExtensiblityEnabled;
+    private boolean mSetCodecConfig;
 
     // Head tracker available
     private static final long HEAD_TRACKER_AVAILABLE_MASK = 0x00300000;
@@ -155,6 +156,7 @@ public class A2dpService extends ProfileService {
                                         ("persist.vendor.service.bt.als_disabled", false);
         mA2dpCodecExtensiblityEnabled = SystemProperties.getBoolean(
              "persist.vendor.qcom.bluetooth.a2dp_offload_codec_extensibility", false);
+        mSetCodecConfig = false;
         mMaxConnectedAudioDevices = mAdapterService.getMaxConnectedAudioDevices();
         Log.i(TAG, "Max connected audio devices set to " + mMaxConnectedAudioDevices);
 
@@ -216,6 +218,8 @@ public class A2dpService extends ProfileService {
         }
 
         mHandler.removeCallbacksAndMessages(null);
+
+        enableSetCodecConfig(false);
     }
 
     CompanionDeviceManager getCompanionDeviceManager() {
@@ -1561,5 +1565,20 @@ public class A2dpService extends ProfileService {
                     BluetoothProfileConnectionInfo.createA2dpInfo(false, -1));
             return 1;
         }
+    }
+
+    public boolean isA2dpExtensibilityEnabled() {
+        Log.e(TAG, "isA2dpExtensibilityEnabled: " + mA2dpCodecExtensiblityEnabled);
+        return mA2dpCodecExtensiblityEnabled;
+    }
+
+    public void enableSetCodecConfig(boolean isSetConfig) {
+        Log.e(TAG, "enableSetCodecConfig: " + isSetConfig);
+        mSetCodecConfig = isSetConfig;
+    }
+
+    public boolean fetchSetCodecConfig() {
+        Log.e(TAG, "fetchSetCodecConfig: " + mSetCodecConfig);
+        return mSetCodecConfig;
     }
 }
