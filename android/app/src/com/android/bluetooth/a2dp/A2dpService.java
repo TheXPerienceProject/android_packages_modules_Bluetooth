@@ -811,6 +811,25 @@ public class A2dpService extends ProfileService {
 
         if (cs4 > 0 && codecConfig.getCodecType() ==
                                 BluetoothCodecConfig.SOURCE_CODEC_TYPE_APTX_ADAPTIVE) {
+
+            switch ((int)(cs4 & APTX_MODE_MASK)) {
+                case APTX_HQ:
+                    mIsScanEnabled = false;
+                    break;
+                case APTX_LL:
+                    if ((cs4 & APTX_SCAN_FILTER_MASK) == APTX_SCAN_FILTER_MASK) {
+                        mIsScanEnabled = true;
+                    } else {
+                        mIsScanEnabled = false;
+                    }
+                    break;
+                default:
+                    Log.e(TAG, cs4 + " is not a aptX profile mode feedback");
+            }
+            mAdapterService.getBluetoothGattService()
+                           .getScanController()
+                           .setAptXLowLatencyMode(mIsScanEnabled);
+
             if (mAlsDisabled) {
                 Log.e(TAG, "setCodecConfigPreference: ALS trigger is ignored");
                 return;
@@ -832,26 +851,7 @@ public class A2dpService extends ProfileService {
             }
 
             setStreamMode(isGamingEnabled, isLowLatencyModeEnabled);
-
         }
-
-        switch ((int)(cs4 & APTX_MODE_MASK)) {
-            case APTX_HQ:
-                mIsScanEnabled = false;
-                break;
-            case APTX_LL:
-                if ((cs4 & APTX_SCAN_FILTER_MASK) == APTX_SCAN_FILTER_MASK) {
-                    mIsScanEnabled = true;
-                } else {
-                    mIsScanEnabled = false;
-                }
-                break;
-            default:
-                Log.e(TAG, cs4 + " is not a aptX profile mode feedback");
-        }
-        mAdapterService.getBluetoothGattService()
-                       .getScanController()
-                       .setAptXLowLatencyMode(mIsScanEnabled);
 
         if (codecConfig == null) {
             Log.e(TAG, "setCodecConfigPreference: Codec config can't be null");
