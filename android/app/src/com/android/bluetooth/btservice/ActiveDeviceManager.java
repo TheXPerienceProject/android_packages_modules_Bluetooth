@@ -1221,6 +1221,15 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                 if ((mLeAudioActiveDevice != null)
                         && (Objects.equals(
                                 mLeAudioActiveDevice, leAudioService.getLeadDevice(device)))) {
+                    /* If Lead device disconnects make member device as active device */
+                    int connectionState =
+                            leAudioService.getConnectionState(mLeAudioActiveDevice);
+                    if (connectionState == BluetoothProfile.STATE_DISCONNECTED ||
+                                    connectionState == BluetoothProfile.STATE_DISCONNECTING) {
+                        mLeAudioActiveDevice = device;
+                        Log.d(TAG, "New LeAudioActiveDevice is " + mLeAudioActiveDevice);
+                        return true;
+                    }
                     Log.d(TAG, "New LeAudioDevice is a part of an active group");
                     return true;
                 }

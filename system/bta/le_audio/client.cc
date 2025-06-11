@@ -2527,6 +2527,7 @@ public:
             log::debug("group_id {} needs to stop streaming before {} disconnection",
                        group->group_id_, leAudioDevice->address_);
             leAudioDevice->closing_stream_for_disconnection_ = true;
+            audio_sender_state_ = AudioState::READY_TO_RELEASE;
             groupStateMachine_->StopStream(group);
             return;
           }
