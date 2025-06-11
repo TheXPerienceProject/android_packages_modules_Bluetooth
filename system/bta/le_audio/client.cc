@@ -6169,6 +6169,8 @@ public:
     log::debug("take_unresumed_local_source_metadata_for_mic_only_devices= {}.",
                                  take_unresumed_local_source_metadata_for_mic_only_devices);
 
+    log::debug("is_other_direction_bidir= {}", is_other_direction_bidir ? "True" : "False");
+
     if (is_other_direction_bidir) {
       if (!(is_streaming_other_direction || is_releasing_for_reconfiguration_other_direction) &&
           !take_unresumed_local_source_metadata_for_mic_only_devices) {
@@ -7121,6 +7123,11 @@ public:
                 log::info("calling sink ConfirmSuspendRequest");
                 le_audio_sink_hal_client_->ConfirmSuspendRequest();
               }
+            }
+
+            if (configuration_context_type_ == LeAudioContextType::GAME) {
+              log::info("clear source local_metadata_context_types_");
+              local_metadata_context_types_.source.clear();
             }
 
             log::info("active_group_id_: {}", active_group_id_);
