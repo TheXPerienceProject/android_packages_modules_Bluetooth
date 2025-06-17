@@ -1933,7 +1933,9 @@ static void adapter_state_changed(bt_state_t state) {
 
   if (state == BT_STATE_ON) {
     bt_enabled = 1;
-    status = sBtInterface->set_adapter_property(&property1);
+    sBtInterface->set_scan_mode(BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE);
+    printf("GATT_TOOL: %s setting: BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE", __FUNCTION__);
+    //status = sBtInterface->set_adapter_property(&property1);
     status = sBtInterface->set_adapter_property(&property);
     status = sBtInterface->set_adapter_property(&property2);
   } else {
