@@ -2398,6 +2398,11 @@ public class HeadsetService extends ProfileService {
                     if (isAtLeastU()) {
                         mSystemInterface.getAudioManager().setLeAudioSuspended(false);
                     }
+                } else if (!Utils.isScoManagedByAudioEnabled() && Utils.isDualModeAudioEnabled()) {
+                   Log.i(TAG, "Resume LE when SCO is disconnected for Dumo");
+                   if (isAtLeastU()) {
+                        mSystemInterface.getAudioManager().setLeAudioSuspended(false);
+                    }
                 }
             });
         }
