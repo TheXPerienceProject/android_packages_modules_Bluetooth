@@ -5055,6 +5055,27 @@ public:
     StartSuspendTimeout();
   }
 
+  void OnLocalAudioServerRestart() {
+    log::info("");
+    auto group = aseGroups_.FindById(active_group_id_);
+    if (!group) {
+      log::error("Invalid group: {}", static_cast<int>(active_group_id_));
+      return;
+    }
+    group->UpdateAudioSetConfigurationCache(LeAudioContextType::SOUNDEFFECTS);
+    group->UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA);
+    group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
+    group->UpdateCisConfiguration(bluetooth::le_audio::types::kLeAudioDirectionSink);
+    BidirectionalPair<uint16_t> delays_pair = {
+      .sink = group->stream_conf.stream_params.sink.stream_config.peer_delay_ms,
+      .source = 0};
+    CodecManager::GetInstance()->UpdateActiveAudioConfig(
+      group->stream_conf.stream_params, group->stream_conf.codec_id,
+      std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal,
+              weak_factory_.GetWeakPtr(), std::placeholders::_1,
+              std::placeholders::_2));
+  }
+
   void OnLocalAudioSourceSuspend() {
     log::info("active group_id: {}, IN: audio_receiver_state_: {}, audio_sender_state_: {}",
               active_group_id_, ToString(audio_receiver_state_), ToString(audio_sender_state_));
@@ -7722,6 +7743,11 @@ public:
   void OnAudioSuspend(void) override {
     if (instance) {
       instance->OnLocalAudioSourceSuspend();
+    }
+  }
+  void OnAudioServerRestart(void) override {
+    if (instance) {
+      instance->OnLocalAudioServerRestart();
     }
   }
 
