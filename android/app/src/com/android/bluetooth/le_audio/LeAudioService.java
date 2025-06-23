@@ -2459,10 +2459,8 @@ public class LeAudioService extends ProfileService {
                 if (deviceInfo.isSink()) {
                     mAudioManagerAddedOutDevice = device;
                 }
-                if (handleAudioDeviceAdded(
-                        device, deviceInfo.getType(), deviceInfo.isSink(), deviceInfo.isSource())) {
-                    return;
-                }
+                handleAudioDeviceAdded(device, deviceInfo.getType(),
+                                            deviceInfo.isSink(), deviceInfo.isSource());
             }
         }
 
