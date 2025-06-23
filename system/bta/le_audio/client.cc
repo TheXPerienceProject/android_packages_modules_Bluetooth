@@ -804,6 +804,7 @@ public:
     log::info("device {}", leAudioDevice->address_);
     leAudioDevice->SetConnectionState(DeviceConnectState::REMOVING);
     leAudioDevice->closing_stream_for_disconnection_ = true;
+    audio_sender_state_ = AudioState::READY_TO_RELEASE;
     GroupStop(leAudioDevice->group_id_);
   }
 
@@ -859,7 +860,7 @@ public:
       SetDeviceAsRemovePendingAndStopGroup(leAudioDevice);
       return;
     }
-    if (leAudioDevice->group_id_ == active_group_id_) {
+    if (leAudioDevice->group_id_ == active_group_id_ && (group->Size() == 1)) {
       log::warn("Set device inactive before removing.");
       groupSetAndNotifyInactive();
     }
