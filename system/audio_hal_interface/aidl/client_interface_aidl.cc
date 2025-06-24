@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "bta/ag/bta_ag_int.h"
+#include "bta/le_audio/le_audio_types.h"
 #include "hearing_aid_software_encoding_aidl.h"
 
 const uint8_t kFetchAudioProviderRetryNumber = 3;
@@ -217,6 +218,8 @@ void BluetoothAudioClientInterface::binderDiedCallbackAidl(void* ptr) {
     log::error("null audio HAL died!");
     return;
   }
+  bluetooth::le_audio::send_vs_cmd(LTV_TYPE_STREAM_INDICATION,
+      0x01, std::vector<uint8_t>());
   client->RenewAudioProviderAndSession();
 }
 
