@@ -909,6 +909,10 @@ public:
       }
     }
 
+    bluetooth::le_audio::send_vs_cmd(LTV_TYPE_BAP_TIMEOUT_INDICATION, 0,
+                     std::vector<uint8_t>(leAudioDevice->address_.address,
+                     leAudioDevice->address_.address+6));
+
     /* If Timeout happens on stream close and stream is closing just for the
      * purpose of device disconnection, do not bother with recovery mode
      */
@@ -5046,6 +5050,8 @@ public:
               INT_TO_PTR(active_group_id_));
     }
 
+    bluetooth::le_audio::send_vs_cmd(LTV_TYPE_STREAM_INDICATION,
+        0x04, std::vector<uint8_t>());
     StartSuspendTimeout();
   }
 
