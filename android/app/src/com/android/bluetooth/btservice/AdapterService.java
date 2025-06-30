@@ -1046,6 +1046,16 @@ public class AdapterService extends Service {
         }
     }
 
+    void ssrCleanupCallback() {
+        Log.e(TAG, "Disabling the BluetoothInCallService component"+
+                " and kill the process to recover");
+        getApplicationContext().getPackageManager().setComponentEnabledSetting(
+            AdapterState.BLUETOOTH_INCALLSERVICE_COMPONENT,
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+            PackageManager.DONT_KILL_APP);
+        android.os.Process.killProcess(android.os.Process.myPid());
+    }
+
     void startProfileServices() {
         Log.d(TAG, "startCoreServices()");
 
