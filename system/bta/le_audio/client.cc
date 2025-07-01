@@ -1483,6 +1483,12 @@ public:
       }
     }
 
+    log::debug("Group id: {} active_group_id_: {}", group_id, active_group_id_);
+    if (group_id != active_group_id_) {
+      log::warn("Selected group is not active.");
+      return;
+    }
+
     log::info("output codec type: {}, input codec type: {}",
                     output_codec_config.codec_type, input_codec_config.codec_type);
     if (!com::android::bluetooth::flags::leaudio_set_codec_config_preference()) {
@@ -1495,11 +1501,6 @@ public:
         log::warn("group id: {}, setting preferred codec is failed.", group_id);
         return;
       }
-    }
-
-    if (group_id != active_group_id_) {
-      log::warn("Selected group is not active.");
-      return;
     }
 
     if (SetConfigurationAndStopStreamWhenNeeded(group, configuration_context_type_)) {
