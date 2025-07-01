@@ -2772,7 +2772,8 @@ private:
           return;
         }
 
-        if (group->GetState() == AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
+        if (group->GetState() == AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING ||
+            group->GetState() == AseState::BTA_LE_AUDIO_ASE_STATE_ENABLING) {
           /* We are here because of the reconnection of the single device. */
           /* Make sure that device is ready to be configured as we could also
            * get here triggered by the remote device. If device is not connected
