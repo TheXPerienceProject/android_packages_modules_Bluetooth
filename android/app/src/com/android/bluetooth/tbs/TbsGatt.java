@@ -298,16 +298,15 @@ public class TbsGatt {
         gattService.addCharacteristic(mBearerListCurrentCallsCharacteristic);
         gattService.addCharacteristic(mContentControlIdCharacteristic);
         gattService.addCharacteristic(mStatusFlagsCharacteristic);
-        if (Utils.isTbsPtsTestMode()) {
-           gattService.addCharacteristic(mIncomingCallTargetURICharacteristic);
-        }
         gattService.addCharacteristic(mCallStateCharacteristic);
         gattService.addCharacteristic(mCallControlPointCharacteristic);
         gattService.addCharacteristic(mCallControlPointOptionalOpcodesCharacteristic);
         gattService.addCharacteristic(mTerminationReasonCharacteristic);
         if (Utils.isTbsPtsTestMode()) {
+           mBearerSignalStrengthReportingIntervalCharecteristic.setValue(new byte[] {(byte) 2});
            gattService.addCharacteristic(mBearerSignalStrengthCharacteristic);
            gattService.addCharacteristic(mBearerSignalStrengthReportingIntervalCharecteristic);
+           gattService.addCharacteristic(mIncomingCallTargetURICharacteristic);
         }
 
         mEventLogger =
