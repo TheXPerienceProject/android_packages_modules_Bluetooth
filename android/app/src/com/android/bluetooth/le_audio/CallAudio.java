@@ -44,6 +44,7 @@ import android.bluetooth.BluetoothHeadset;
 
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.os.UserHandle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -67,13 +68,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
 
+import static java.util.Objects.requireNonNull;
 
 public class CallAudio {
 
     private static CallAudio mCallAudio;
     private static final String TAG = "CallAudio";
     Map<String, CallDevice> mCallDevicesMap;
+    private final Context mContext;
     private final AdapterService mAdapterService;
     public static final String BLUETOOTH_PERM = android.Manifest.permission.BLUETOOTH;
     public static final String BLUETOOTH_ADMIN_PERM = android.Manifest.permission.BLUETOOTH_ADMIN;
@@ -85,6 +89,10 @@ public class CallAudio {
     private CallAudioMessageHandler mHandler;
     private BluetoothDevice mActiveDevice = null;
     private int mActiveProfile = 0;
+    private final AudioManager mAudioManager;
+    private BluetoothOnModeChangedListener mBluetoothOnModeChangedListener;
+    private int mAudioMode = AudioManager.MODE_NORMAL;
+    private boolean mDelayHfpActiveDeviceChange = false;
 
     public static int UNKNOWPROFILE = 0;
     public static int HFP = 1;
@@ -121,6 +129,15 @@ public class CallAudio {
                    Log.d(TAG, "MESSAGE_ACTIVE_HFP_DEVICE_CHANGE");
                    if (mActiveDevice != null) {
                        broadcastActiveDevice(mActiveDevice);
+                       // Notify LeAudio active device change as well while
+                       // broadcast faked HFP active device change, It is ensure
+                       // LeAudio device is the latest/preferred BT routing device.
+                       if (mActiveProfile == LE_AUDIO_VOICE) {
+                           LeAudioService leAudioService = mServiceFactory.getLeAudioService();
+                           if (leAudioService != null) {
+                               leAudioService.setActiveDevice(mActiveDevice);
+                           }
+                       }
                    }
                    break;
                default:
@@ -129,10 +146,12 @@ public class CallAudio {
         }
     }
 
-    private CallAudio() {
+    private CallAudio(Context context) {
         Log.d(TAG, "Initialization");
+        mContext = context;
         mCallDevicesMap = new ConcurrentHashMap<String, CallDevice>();
         mAdapterService = AdapterService.getAdapterService();
+        mAudioManager = requireNonNull(mContext.getSystemService(AudioManager.class));
 
         mIsVoipLeaWarEnabled =
                 SystemProperties.getBoolean("persist.enable.bluetooth.voipleawar", false)
@@ -143,13 +162,16 @@ public class CallAudio {
             thread.start();
             Looper looper = thread.getLooper();
             mHandler = new CallAudioMessageHandler(looper);
+
+            mBluetoothOnModeChangedListener = new BluetoothOnModeChangedListener();
+                    mAudioManager.addOnModeChangedListener(
+                    Executors.newSingleThreadExecutor(), mBluetoothOnModeChangedListener);
         }
     }
 
     public static CallAudio init(Context context) {
         if(mCallAudio == null) {
-            //mCallAudio = new CallAudio(context);
-            mCallAudio = new CallAudio();
+            mCallAudio = new CallAudio(context);
         }
         return mCallAudio;
     }
@@ -163,6 +185,26 @@ public class CallAudio {
         mCallDevicesMap.clear();
         mActiveDevice= null;
         mActiveProfile = UNKNOWPROFILE;
+        if (mBluetoothOnModeChangedListener != null) {
+            mAudioManager.removeOnModeChangedListener(mBluetoothOnModeChangedListener);
+        }
+        mBluetoothOnModeChangedListener = null;
+    }
+
+    class BluetoothOnModeChangedListener implements AudioManager.OnModeChangedListener {
+        @Override
+        public void onModeChanged(int mode) {
+            Log.i(TAG, "AudioModeChanged: " +  mAudioMode + " -> " + mode);
+            if (mAudioMode != AudioManager.MODE_NORMAL
+                    && mode == AudioManager.MODE_NORMAL) {
+                if (mDelayHfpActiveDeviceChange) {
+                    Message msg = mHandler.obtainMessage(MESSAGE_ACTIVE_HFP_DEVICE_CHANGE);
+                    mHandler.sendMessageDelayed(msg, 100);
+                    mDelayHfpActiveDeviceChange = false;
+                }
+            }
+            mAudioMode = mode;
+        }
     }
 
     public boolean isVirtualCallStarted() {
@@ -474,8 +516,21 @@ public class CallAudio {
                                           (headsetService.isInCall() ||
                                            (headsetService.isRinging() &&
                                             headsetService.isInbandRingingEnabled()))) {
+                // If Telephony call is ongoing, telecom will switch route device while
+                // receive HFP active device change or LeAudio active device change Intents.
+                // To avoid back to back switching route device between HFP and LeAudio,
+                // delay to broadcast faked HFP active change until call end.
+                if (profile == LE_AUDIO_VOICE) {
+                    mDelayHfpActiveDeviceChange = true;
+                } else {
+                    broadcastActiveDevice(device);
+                }
+            } else if (mAudioMode == AudioManager.MODE_NORMAL) {
+                // Broadcast HFP active device immediately if neither Telephony call
+                // nor VOIP call is active.
+                Log.d(TAG,"updateActiveDevice, audio mode is normal");
                 broadcastActiveDevice(device);
-            } else {
+            } else { // AudioManager.MODE_IN_COMMUNICATION
                 if (mHandler.hasMessages(MESSAGE_ACTIVE_HFP_DEVICE_CHANGE)) {
                     Log.d(TAG,"updateActiveDevice, remove MESSAGE_ACTIVE_HFP_DEVICE_CHANGE first.");
                     mHandler.removeMessages(MESSAGE_ACTIVE_HFP_DEVICE_CHANGE);
