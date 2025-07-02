@@ -218,8 +218,6 @@ void BluetoothAudioClientInterface::binderDiedCallbackAidl(void* ptr) {
     log::error("null audio HAL died!");
     return;
   }
-  bluetooth::le_audio::send_vs_cmd(LTV_TYPE_STREAM_INDICATION,
-      0x01, std::vector<uint8_t>());
   client->RenewAudioProviderAndSession();
 }
 
@@ -554,6 +552,10 @@ size_t BluetoothAudioSinkClientInterface::ReadAudioData(uint8_t* p_buf, uint32_t
 void BluetoothAudioClientInterface::RenewAudioProviderAndSession() {
   // NOTE: must be invoked on the same thread where this
   // BluetoothAudioClientInterface is running
+  if (session_started_) {
+    bluetooth::le_audio::send_vs_cmd(LTV_TYPE_STREAM_INDICATION,
+        0x01, std::vector<uint8_t>());
+  }
   FetchAudioProvider();
 
   if (session_started_) {
