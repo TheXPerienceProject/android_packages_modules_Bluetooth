@@ -1538,6 +1538,13 @@ public class HeadsetService extends ProfileService {
                 Log.w(TAG, "startScoUsingVirtualVoiceCall: no active device");
                 return false;
             }
+            if (isVoipLeaWarEnabled()) {
+                CallAudio mCallAudio = CallAudio.get();
+                if (mCallAudio != null && mCallAudio.getBroadcastedActiveDevice() == null) {
+                    Log.w(TAG, "startScoUsingVirtualVoiceCall: Broadcasted HFP Active Device is null");
+                    return false;
+                }
+            }
             if (SystemProperties.getBoolean(REJECT_SCO_IF_HFPC_CONNECTED_PROPERTY, false)
                     && isHeadsetClientConnected()) {
                 Log.w(TAG, "startScoUsingVirtualVoiceCall: rejected SCO since HFPC is connected!");
