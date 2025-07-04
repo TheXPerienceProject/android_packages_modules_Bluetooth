@@ -1040,6 +1040,8 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
         mAudioManager.addOnModeChangedListener(
                     Executors.newSingleThreadExecutor(), mBluetoothOnModeChangedListener);
         LoadDualModePoliciesfromLocalStorage();
+
+        mAudioMode = mAudioManager.getMode();
     }
 
     void cleanup() {
