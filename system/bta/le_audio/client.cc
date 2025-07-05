@@ -5398,7 +5398,8 @@ public:
   inline bool IsDirectionAvailableForCurrentConfiguration(const LeAudioDeviceGroup* group,
                                                           uint8_t remote_direction) const {
     auto current_config =
-            group->IsUsingPreferredAudioSetConfiguration(configuration_context_type_)
+            (group->IsPreferredConfigAvailbleForContext(configuration_context_type_) &&
+             group->IsUsingPreferredAudioSetConfiguration(configuration_context_type_))
                     ? group->GetCachedPreferredConfiguration(configuration_context_type_)
                     : group->GetCachedConfiguration(configuration_context_type_);
     log::debug("configuration_context_type_ = {}, group_id: {}, remote_direction: {}",
