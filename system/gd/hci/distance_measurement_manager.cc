@@ -1955,16 +1955,17 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
   void parse_ras_segments(RangingHeader ranging_header, PacketViewForRecombination& segment_data,
                           uint16_t connection_handle) {
     log::info("Data size {}, Ranging_header {}", segment_data.size(), ranging_header.ToString());
-    auto procedure_data =
-            get_procedure_data_for_ras(connection_handle, ranging_header.ranging_counter_);
-    if (procedure_data == nullptr) {
-      return;
-    }
-
-    if (cs_requester_trackers_[connection_handle].procedure_data_list.back().counter - ranging_header.ranging_counter_ >= kProcedureDataBufferSize) {
+    if ((cs_requester_trackers_[connection_handle]
+            .procedure_data_list.back().counter & kRangingCounterMask)
+        - ranging_header.ranging_counter_ >= kProcedureDataBufferSize) {
       log::warn("Delay in receiving RAS packets, restarting procedures!");
       is_ras_packets_delayed = true;
       send_le_cs_procedure_enable(connection_handle, Enable::DISABLED);
+      return;
+    }
+    auto procedure_data =
+            get_procedure_data_for_ras(connection_handle, ranging_header.ranging_counter_);
+    if (procedure_data == nullptr) {
       return;
     }
     uint8_t num_antenna_paths = 0;
