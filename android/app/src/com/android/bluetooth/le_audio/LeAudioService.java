@@ -3223,6 +3223,7 @@ public class LeAudioService extends ProfileService {
         Log.d(TAG, "setDisconnected: " + isDisconnected);
         if(isDisconnected) {
             mHasFallback = false;
+            mUserPreferred = false;
         }
     }
 
