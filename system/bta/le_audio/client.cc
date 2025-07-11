@@ -1467,17 +1467,22 @@ public:
       log::error("Unknown group id: %d", group_id);
     }
 
+    bool lex_enablement_changed = false;
+    bool lex_enabled = group->IsLeXCodecEnabled();
+
     if (!CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
       if (output_codec_config.codec_type ==
           bluetooth::le_audio::btle_audio_codec_index_t::LE_AUDIO_CODEC_INDEX_SOURCE_APTX_LEX) {
         group->DisableLeXCodec(false);
-        log::debug("Enabling LeX Codec");
+        lex_enablement_changed = lex_enabled != group->IsLeXCodecEnabled() && group->IsLeXDevice();
+        log::debug("Enabling LeX Codec, enablement_changed={}", lex_enablement_changed);
         group->UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA);
         group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
       } else if (output_codec_config.codec_type ==
           bluetooth::le_audio::btle_audio_codec_index_t::LE_AUDIO_CODEC_INDEX_SOURCE_DEFAULT) {
         group->DisableLeXCodec(true);
-        log::debug("Disabling LeX Codec");
+        lex_enablement_changed = lex_enabled != group->IsLeXCodecEnabled() && group->IsLeXDevice();
+        log::debug("Disabling LeX Codec, enablement_changed={}", lex_enablement_changed);
         group->UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA);
         group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
       }
@@ -1499,7 +1504,8 @@ public:
         log::info("group id: {}, setting preferred codec is successful.", group_id);
       } else {
         log::warn("group id: {}, setting preferred codec is failed.", group_id);
-        return;
+        if (!lex_enablement_changed)
+          return;
       }
     }
 
