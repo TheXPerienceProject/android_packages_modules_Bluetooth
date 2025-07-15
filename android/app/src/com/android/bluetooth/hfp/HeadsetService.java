@@ -2027,11 +2027,10 @@ public class HeadsetService extends ProfileService {
                    }
                 } else {
                   if (isAtLeastU()) {
-                      BluetoothDevice btDevice = mAdapterService.getActiveDeviceManager()
-                                                             .fetchLeAudioActiveDevice();
-                      if (btDevice == null) {
+                     if (mActiveDevice != null) {
+                         Log.i(TAG, "HFP active device is present. Setting LeAudiosuspend params");
                          mSystemInterface.getAudioManager().setLeAudioSuspended(true);
-                      }
+                     }
                   }
                 }
                 //Adding the wait mechanism Logic.
