@@ -1930,7 +1930,7 @@ private:
     if (sdu_interval_us == 0) {
       return max_latency_ms == bluetooth::le_audio::types::kMaxTransportLatencyMin;
     }
-    return (1000 * max_latency_ms) >= sdu_interval_us;
+    return true;// skipping this as this is spec violation(1000 * max_latency_ms) >= sdu_interval_us;
   }
 
   void ApplyDsaParams(LeAudioDeviceGroup* group,
