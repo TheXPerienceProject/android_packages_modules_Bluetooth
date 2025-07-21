@@ -6103,12 +6103,23 @@ public:
       }
     }
 
+    auto all_bidirectional_contexts = group->GetAllSupportedBidirectionalContextTypes();
+    log::debug("all_bidirectional_contexts {}", ToString(all_bidirectional_contexts));
+
+    /* Make sure we have CONVERSATIONAL when in a call and it is not mixed
+     * with any other bidirectional context
+     */
+    if (IsInCall() || IsInVoipCall()) {
+      log::debug("In Call preference used: {}, voip call: {}", IsInCall(), IsInVoipCall());
+      local_metadata_context_types_.sink.unset_all(all_bidirectional_contexts);
+      local_metadata_context_types_.source.unset_all(all_bidirectional_contexts);
+      local_metadata_context_types_.sink.set(LeAudioContextType::CONVERSATIONAL);
+      local_metadata_context_types_.source.set(LeAudioContextType::CONVERSATIONAL);
+    }
+
     BidirectionalPair<AudioContexts> remote_metadata = {
             .sink = local_metadata_context_types_.source,
             .source = local_metadata_context_types_.sink};
-
-    auto all_bidirectional_contexts = group->GetAllSupportedBidirectionalContextTypes();
-    log::debug("all_bidirectional_contexts {}", ToString(all_bidirectional_contexts));
 
     /*
      * Detect the gaming scenario and mirror the context to the other direction.
@@ -6132,17 +6143,6 @@ public:
         local_metadata_context_types_.sink.set(LeAudioContextType::GAME);
         local_metadata_context_types_.source.set(LeAudioContextType::GAME);
       }
-    }
-
-    /* Make sure we have CONVERSATIONAL when in a call and it is not mixed
-     * with any other bidirectional context
-     */
-    if (IsInCall() || IsInVoipCall()) {
-      log::debug("In Call preference used: {}, voip call: {}", IsInCall(), IsInVoipCall());
-      remote_metadata.sink.unset_all(all_bidirectional_contexts);
-      remote_metadata.source.unset_all(all_bidirectional_contexts);
-      remote_metadata.sink.set(LeAudioContextType::CONVERSATIONAL);
-      remote_metadata.source.set(LeAudioContextType::CONVERSATIONAL);
     }
 
     if (IsInVoipCall()) {
