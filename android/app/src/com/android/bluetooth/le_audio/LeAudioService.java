@@ -6052,7 +6052,12 @@ public class LeAudioService extends ProfileService {
             return;
         }
 
-        mUserPreferred = true;
+        if (outputCodecConfig.getCodecPriority() ==
+                                    BluetoothLeAudioCodecConfig.CODEC_PRIORITY_HIGHEST) {
+            mUserPreferred = true;
+        } else {
+            Log.w(TAG, "It doesn't set preferred codec directly, select codec passively");
+        }
         mNativeInterface.setCodecConfigPreference(groupId, inputCodecConfig, outputCodecConfig);
     }
 
