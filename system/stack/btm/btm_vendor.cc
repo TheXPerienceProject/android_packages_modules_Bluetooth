@@ -971,8 +971,25 @@ void BTM_ReadVendorAddOnFeatures() {
     char splita2dp[PROPERTY_VALUE_MAX];
     char aac_frame_ctl[PROPERTY_VALUE_MAX];
     char max_pow_support[PROPERTY_VALUE_MAX];
+    const char *used_prop = nullptr;
 
-    ret = property_get("persist.vendor.qcom.bluetooth.soc", soc_name, "");
+    int ret = property_get("persist.vendor.qcom.bluetooth.soc", soc_name, "");
+
+    if (ret > 0 && strlen(soc_name) > 0) {
+        used_prop = "persist.vendor.qcom.bluetooth.soc";
+    } else {
+        ret = property_get("vendor.bluetooth.soc", soc_name, "");
+        if (ret > 0 && strlen(soc_name) > 0) {
+            used_prop = "vendor.bluetooth.soc";
+        }
+    }
+
+    // Debugging info
+    if (used_prop)
+      log::info(":: Bluetooth SOC detected using {}: {}", used_prop, soc_name);
+    else
+      log::warn(":: Bluetooth SOC name could not be determined");
+
     log::info(":: Bluetooth soc type set to: {}, ret: {}", soc_name, ret);
 
     if (ret != 0) {
