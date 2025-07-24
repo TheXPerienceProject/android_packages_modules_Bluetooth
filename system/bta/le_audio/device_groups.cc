@@ -1075,22 +1075,34 @@ bool LeAudioDeviceGroup::SetPreferredAudioSetConfiguration(
 
   bool is_updated = false;
 
-  /*for (LeAudioContextType ctx_type : types::kLeAudioContextAllTypesArray) {
-    is_updated |= UpdateAudioSetConfigurationCache(ctx_type, true);
-  }*/
-
-  log::debug("configuration_context_type_ = {}",
+  if (!CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+    for (LeAudioContextType ctx_type : types::kLeAudioContextAllTypesArray) {
+      if (UpdateAudioSetConfigurationCache(ctx_type, true)) {
+        preferred_config_for_context_exist_[ctx_type] = true;
+        is_updated = true;
+      }
+    }
+  } else {
+    log::debug("configuration_context_type_ = {}",
                                       common::ToString(configuration_context_type_));
-  is_updated |= UpdateAudioSetConfigurationCache(configuration_context_type_, true);
+    is_updated |= UpdateAudioSetConfigurationCache(configuration_context_type_, true);
 
-  if (!IsStreaming() && configuration_context_type_ != LeAudioContextType::MEDIA) {
-    log::info("Update media also when is NOT streaming");
-    is_updated |= UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA, true);
+    if (configuration_context_type_ != LeAudioContextType::MEDIA) {
+      if (UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA, true)) {
+        log::info("Update media preferred codec also when is NOT streaming");
+        preferred_config_for_context_exist_[LeAudioContextType::MEDIA] = true;
+      }
+    }
+
+    if(configuration_context_type_ != LeAudioContextType::CONVERSATIONAL) {
+      if (UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL, true)) {
+        log::info("Update CONVERSATIONAL preferred codec also when is NOT streaming");
+        preferred_config_for_context_exist_[LeAudioContextType::CONVERSATIONAL] = true;
+      }
+    }
+    preferred_config_for_context_exist_[configuration_context_type_] = is_updated;
   }
-
   log::info("is_updated: {}", is_updated);
-  preferred_config_for_context_exist_[configuration_context_type_] = is_updated;
-
   return is_updated;
 }
 
