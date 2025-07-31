@@ -2801,7 +2801,12 @@ bool BtifAvStateMachine::StateStarted::ProcessEvent(uint32_t event, void* p_data
                                  peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource);
         }
       } else {
-        log::info("Remote Suspend, ignore calling btif_a2dp_on_suspended");
+        if (peer_.CheckFlags(BtifAvPeer::kFlagLocalSuspendPending)) {
+          log::info("Remote Suspend, but local suspend pending calling btif_a2dp_on_suspended");
+          btif_a2dp_on_suspended(&p_av->suspend,
+                                 peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource);
+        }
+        log::info("Remote Suspend, no local suspend pending,ignore calling btif_a2dp_on_suspended");
       }
       // If not successful, remain in current state
       if (p_av->suspend.status != BTA_AV_SUCCESS) {
