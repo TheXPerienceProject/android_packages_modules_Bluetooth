@@ -928,7 +928,9 @@ LeAudioDeviceGroup::GetAudioSetConfigurationRequirements(types::LeAudioContextTy
       CodecManager::UnicastConfigurationRequirements::DeviceDirectionRequirements config_req;
       config_req.params.Add(codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation,
                             (uint32_t)locations);
-      if (context_to_preferred_configuration_cache_map_.count(ctx_type) != 0) {
+      if (!CodecManager::GetInstance()->IsUsingCodecExtensibility() ||
+          (CodecManager::GetInstance()->IsUsingCodecExtensibility() &&
+           context_to_preferred_configuration_cache_map_.count(ctx_type) != 0)) {
         log::warn("preferred config available for context: {}", common::ToString(ctx_type));
         if (preferred_config_.get(direction) &&
             preferred_config_.get(direction)->codec_priority != -1) {
