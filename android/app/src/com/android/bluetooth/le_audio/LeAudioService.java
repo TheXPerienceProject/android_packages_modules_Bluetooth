@@ -2416,6 +2416,14 @@ public class LeAudioService extends ProfileService {
 
         notifyActiveDeviceChanged(device);
         mAudioManager.setA2dpSuspended(false);
+        if (Utils.isDualModeAudioEnabled()) {
+            boolean isCsipSupported = Utils.arrayContains(mAdapterService.getRemoteUuids(device),
+                                                       BluetoothUuid.COORDINATED_SET);
+            if (isCsipSupported) {
+                Log.d(TAG, " csip supported device " + device + " became active. so suspend LE Streamstatus");
+                mAudioManager.setLeAudioSuspended(false);
+            }
+        }
         return true;
     }
 
