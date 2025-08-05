@@ -1641,6 +1641,10 @@ public:
                     !(group->IsSuspendedForReconfiguration() &&
                              configuration_context_type_ != LeAudioContextType::CONVERSATIONAL))) {
       log::debug("{} is not streaming or not configuring to other contexts", active_group_id_);
+      if (group && group->IsSuspendedForReconfiguration()) {
+        log::error("AHAL is still in suspend state, send resume.");
+        reconfigurationComplete();
+      }
       return;
     }
 
