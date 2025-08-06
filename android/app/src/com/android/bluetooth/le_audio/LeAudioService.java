@@ -3621,6 +3621,11 @@ public class LeAudioService extends ProfileService {
                 suppressNoisyIntent = true;
             }
 
+            if (getActiveGroupId() != LE_AUDIO_GROUP_ID_INVALID) {
+                Log.d(TAG, "fallback to unicast device after broadcast stopped");
+                suppressNoisyIntent = true;
+            }
+
             // Notify audio manager
             if (!isAnyBroadcastInStreamingState()) {
                 updateBroadcastActiveDevice(null, mActiveBroadcastAudioDevice, suppressNoisyIntent);
