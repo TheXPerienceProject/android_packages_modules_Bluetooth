@@ -1584,6 +1584,11 @@ public:
       return;
     }
 
+    if (defer_notify_inactive_until_stop_) {
+      log::debug("Device is pending for inactive until stop.");
+      return;
+    }
+
     LeAudioDeviceGroup* group = aseGroups_.FindById(active_group_id_);
     if (group && !in_call) {
       group->ClearStreamingPendingTargetState();
