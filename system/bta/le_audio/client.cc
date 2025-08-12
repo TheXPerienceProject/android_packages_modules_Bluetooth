@@ -1231,6 +1231,11 @@ public:
           return AudioContexts(ct);
         }
       }
+    } else {
+      if (source_monitor_mode_) {
+        log::warn("All context type not available in source monitor mode");
+        return metadata_context_type;
+      }
     }
 
     /* Fallback to BAP mandated context type */
@@ -6019,6 +6024,23 @@ public:
                      dir == bluetooth::le_audio::types::kLeAudioDirectionSink ? " Sink" : " Source",
                      ToString(contexts_pair.get(other_dir)));
           contexts_pair.get(dir).unset(LeAudioContextType::UNSPECIFIED);
+        }
+      }
+    }
+
+    // In source monitor mode, remove UNSPECIFIED for the other direction
+    // if request context not available for remote direction.
+    if (source_monitor_mode_) {
+      if (contexts_pair.get(remote_dir).none()) {
+        auto other_dir = (remote_dir == bluetooth::le_audio::types::kLeAudioDirectionSink
+                                        ? bluetooth::le_audio::types::kLeAudioDirectionSource
+                                        : bluetooth::le_audio::types::kLeAudioDirectionSink);
+        if (contexts_pair.get(other_dir).test(LeAudioContextType::UNSPECIFIED)) {
+          log::debug("Requested context is not available for remote direction {}, "
+                    "removing UNSPECIFIED for the other direction",
+                    remote_dir == bluetooth::le_audio::types::kLeAudioDirectionSink ? " Sink"
+                                                                                    : " Source");
+          contexts_pair.get(other_dir).unset(LeAudioContextType::UNSPECIFIED);
         }
       }
     }
