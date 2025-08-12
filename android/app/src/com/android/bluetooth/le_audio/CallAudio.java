@@ -519,8 +519,7 @@ public class CallAudio {
             HeadsetService headsetService = mServiceFactory.getHeadsetService();
             if (headsetService != null && !headsetService.isVirtualCallStarted() &&
                                           (headsetService.isInCall() ||
-                                           (headsetService.isRinging() &&
-                                            headsetService.isInbandRingingEnabled()))) {
+                                           headsetService.isRinging())) {
                 // If Telephony call is ongoing, telecom will switch route device while
                 // receive HFP active device change or LeAudio active device change Intents.
                 // To avoid back to back switching route device between HFP and LeAudio,
