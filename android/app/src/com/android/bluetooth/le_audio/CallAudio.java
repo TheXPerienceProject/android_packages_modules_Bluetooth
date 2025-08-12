@@ -93,6 +93,7 @@ public class CallAudio {
     private BluetoothOnModeChangedListener mBluetoothOnModeChangedListener;
     private int mAudioMode = AudioManager.MODE_NORMAL;
     private boolean mDelayHfpActiveDeviceChange = false;
+    private BluetoothDevice mBroadcastedActiveDevice = null;
 
     public static int UNKNOWPROFILE = 0;
     public static int HFP = 1;
@@ -417,6 +418,7 @@ public class CallAudio {
             return;
         }
 
+        mBroadcastedActiveDevice = device;
         synchronized (headsetService) {
             BluetoothStatsLog.write(
                 BluetoothStatsLog.BLUETOOTH_ACTIVE_DEVICE_CHANGED,
@@ -431,6 +433,11 @@ public class CallAudio {
             headsetService.sendBroadcastAsUser(intent, UserHandle.ALL, BLUETOOTH_CONNECT,
                                                Utils.getTempBroadcastOptions().toBundle());
         }
+    }
+
+    public BluetoothDevice getBroadcastedActiveDevice() {
+        Log.d(TAG, "getBroadcastedActiveDevice, device: " + mBroadcastedActiveDevice);
+        return mBroadcastedActiveDevice;
     }
 
     private void broadcastAudioState(BluetoothDevice device, int fromState, int toState) {
@@ -519,8 +526,7 @@ public class CallAudio {
             HeadsetService headsetService = mServiceFactory.getHeadsetService();
             if (headsetService != null && !headsetService.isVirtualCallStarted() &&
                                           (headsetService.isInCall() ||
-                                           (headsetService.isRinging() &&
-                                            headsetService.isInbandRingingEnabled()))) {
+                                           headsetService.isRinging())) {
                 // If Telephony call is ongoing, telecom will switch route device while
                 // receive HFP active device change or LeAudio active device change Intents.
                 // To avoid back to back switching route device between HFP and LeAudio,
@@ -614,7 +620,6 @@ public class CallAudio {
             && (state == BluetoothProfile.STATE_DISCONNECTING
                 || state == BluetoothProfile.STATE_DISCONNECTED)) {
             Log.d(TAG, "onConnStateChange: mActiveDevice disconnecting/disconnected");
-            updateActiveDevice(null, profile);
         }
 
         switch(otherProfileConnectionState) {
