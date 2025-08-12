@@ -93,6 +93,7 @@ public class CallAudio {
     private BluetoothOnModeChangedListener mBluetoothOnModeChangedListener;
     private int mAudioMode = AudioManager.MODE_NORMAL;
     private boolean mDelayHfpActiveDeviceChange = false;
+    private BluetoothDevice mBroadcastedActiveDevice = null;
 
     public static int UNKNOWPROFILE = 0;
     public static int HFP = 1;
@@ -417,6 +418,7 @@ public class CallAudio {
             return;
         }
 
+        mBroadcastedActiveDevice = device;
         synchronized (headsetService) {
             BluetoothStatsLog.write(
                 BluetoothStatsLog.BLUETOOTH_ACTIVE_DEVICE_CHANGED,
@@ -431,6 +433,11 @@ public class CallAudio {
             headsetService.sendBroadcastAsUser(intent, UserHandle.ALL, BLUETOOTH_CONNECT,
                                                Utils.getTempBroadcastOptions().toBundle());
         }
+    }
+
+    public BluetoothDevice getBroadcastedActiveDevice() {
+        Log.d(TAG, "getBroadcastedActiveDevice, device: " + mBroadcastedActiveDevice);
+        return mBroadcastedActiveDevice;
     }
 
     private void broadcastAudioState(BluetoothDevice device, int fromState, int toState) {
@@ -613,7 +620,6 @@ public class CallAudio {
             && (state == BluetoothProfile.STATE_DISCONNECTING
                 || state == BluetoothProfile.STATE_DISCONNECTED)) {
             Log.d(TAG, "onConnStateChange: mActiveDevice disconnecting/disconnected");
-            updateActiveDevice(null, profile);
         }
 
         switch(otherProfileConnectionState) {
