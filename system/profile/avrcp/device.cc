@@ -188,6 +188,7 @@ void Device::HandlePendingPlay() {
         return;
       }
       d->media_interface_->SendKeyEvent(uint8_t(OperationID::PLAY), KeyState::PUSHED);
+      d->media_interface_->SendKeyEvent(uint8_t(OperationID::PLAY), KeyState::RELEASED);
       d->IsPendingPlay_ = false;
     }
   },
