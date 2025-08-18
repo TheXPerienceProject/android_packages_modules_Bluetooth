@@ -2956,7 +2956,7 @@ public class BassClientService extends ProfileService {
 
         // Make sure scan is enabled before PA sync
         if (!isSearchInProgress()) {
-            enableBassScan();
+            mHandler.post(() -> enableBassScan());
         }
 
         // Check if there are resources for sync
