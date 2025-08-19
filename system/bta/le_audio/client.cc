@@ -898,7 +898,12 @@ public:
     /* There is an issue with a setting up stream or any other operation which
      * are gatt operations. It means peer is not responsible. Lets close ACL
      */
-    CancelStreamingRequest();
+    if (group->IsPendingConfiguration() || group->IsSuspendedForReconfiguration()) {
+      group->ClearPendingConfiguration();
+      reconfigurationComplete();
+    } else {
+      CancelStreamingRequest();
+    }
     LeAudioDevice* leAudioDevice = group->GetFirstActiveDevice();
     if (leAudioDevice == nullptr) {
       log::error("Shouldn't be called without an active device.");
