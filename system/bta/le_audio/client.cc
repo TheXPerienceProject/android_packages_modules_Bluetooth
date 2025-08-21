@@ -1030,6 +1030,31 @@ public:
     audio_receiver_state_ = AudioState::IDLE;
   }
 
+  void CancelLocalAudioSourceStreamingRequestWithUnsupported() {
+    if(le_audio_source_hal_client_) {
+      le_audio_source_hal_client_->CancelStreamingRequestWithUnsupported();
+    }
+
+    LeAudioLogHistory::Get()->AddLogHistory(kLogBtCallAf, active_group_id_, RawAddress::kEmpty,
+                                            kLogAfCancel + "LocalSource",
+                                            "s_state: " + ToString(audio_sender_state_));
+
+    audio_sender_state_ = AudioState::IDLE;
+  }
+
+  void CancelLocalAudioSinkStreamingRequestWithUnsupported() {
+    if(le_audio_sink_hal_client_) {
+      le_audio_sink_hal_client_->CancelStreamingRequestWithUnsupported();
+    }
+
+    LeAudioLogHistory::Get()->AddLogHistory(kLogBtCallAf, active_group_id_, RawAddress::kEmpty,
+                                            kLogAfCancel + "LocalSink",
+                                            "s_state: " + ToString(audio_receiver_state_));
+
+    is_local_sink_metadata_available_ = false;
+    audio_receiver_state_ = AudioState::IDLE;
+  }
+
   void CancelStreamingRequest() {
     log::info(" audio_sender_state {}, audio_receiver_state {}",
               bluetooth::common::ToString(audio_sender_state_),
@@ -5186,7 +5211,7 @@ public:
               ToString(group->GetAllowedContextMask(
                       bluetooth::le_audio::types::kLeAudioDirectionSink)),
               ToString(configuration_context_type_));
-      CancelLocalAudioSourceStreamingRequest();
+      CancelLocalAudioSourceStreamingRequestWithUnsupported();
       return;
     }
 
@@ -5541,7 +5566,7 @@ public:
               ToString(group->GetAllowedContextMask(
                       bluetooth::le_audio::types::kLeAudioDirectionSource)),
               ToString(configuration_context_type_));
-      CancelLocalAudioSourceStreamingRequest();
+      CancelLocalAudioSinkStreamingRequestWithUnsupported();
       return;
     }
 
