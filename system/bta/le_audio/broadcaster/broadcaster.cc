@@ -562,6 +562,12 @@ public:
       public_features = static_cast<uint8_t>(broadcast_code ? 1 : 0);
     }
 
+    if (available_broadcast_ids_.size() == 0) {
+      log::error("available broadcast ids is empty.");
+      callbacks_->OnBroadcastCreated(bluetooth::le_audio::kBroadcastIdInvalid, false);
+      return;
+    }
+
     auto broadcast_id = available_broadcast_ids_.back();
     available_broadcast_ids_.pop_back();
     if (available_broadcast_ids_.size() == 0) {
