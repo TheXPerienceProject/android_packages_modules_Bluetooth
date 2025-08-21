@@ -58,6 +58,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "internal_include/stack_config.h"
 #include "bt_target.h"
 #include <bt_testapp.h>
 #include "stack/include/l2cdefs.h"
@@ -723,7 +724,11 @@ void do_l2cap_init(char* p) {
   // use other param if needed
   tl2cap_cfg_info.fcr_present = g_Fcr_Present;
   tl2cap_cfg_info.fcr.mode = g_Fcr_Mode;
-  tl2cap_cfg_info.fcs = 0;
+  if(stack_config_get_interface()->get_pts_foc_data_write()) {
+    tl2cap_cfg_info.fcs = 1;
+  } else {
+    tl2cap_cfg_info.fcs = 0;
+  }
   tl2cap_cfg_info.fcs_present = 1;
 
   tl2cap_cfg_info.fcr.tx_win_sz = 3;
@@ -853,6 +858,7 @@ static void l2c_listen(int SendData) {
 }
 
 static int Send_Data() {
+if(!stack_config_get_interface()->get_pts_foc_data_write()) {
   int fd, size;
   char* tmpBuf = NULL;
 
@@ -919,6 +925,37 @@ static int Send_Data() {
   }
   sleep(50);
   free(tmpBuf);
+  } else {
+     //unsigned char tmpBuffer[] = {0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F};
+        char tmpBuffer[150] = {0x7F};
+        unsigned char Ch;
+        memset(tmpBuffer, 0x77, 150);
+        printf("Count input from user: %d...\n", count);
+        sleep(10);
+        printf("Before first two write: count is %d...\n", count);
+        count--;
+        do_l2cap_DataWrite(tmpBuffer, 10);
+        printf("After first write...%d\n", count);
+        if(count) {
+        count--;
+            do_l2cap_DataWrite(tmpBuffer, 10);
+            printf("After second write...%d\n", count);
+        }
+        if(count) {
+          count--;
+          scanf("%c",&Ch);
+          do_l2cap_DataWrite(tmpBuffer, 5);
+          printf(" After 3ed write count is: %d\n", count);
+        }
+        if(count) {
+        count--;
+        scanf("%c",&Ch);
+        do_l2cap_DataWrite(tmpBuffer, 5);
+        printf("After 4th write count is: %d\n", count);
+        }
+        sleep(50);
+        count =0;
+  }
   return TRUE;
 }
 
