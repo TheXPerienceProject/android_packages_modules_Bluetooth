@@ -4156,7 +4156,8 @@ public class LeAudioService extends ProfileService {
                     {
                         handleGroupTransitToActive(groupId);
 
-                        if (!leaudioBigDependsOnAudioState() || areBroadcastsAllStopped()) {
+                        if (!leaudioBigDependsOnAudioState()
+                                || (areBroadcastsAllStopped() && !mAwaitingBroadcastCreateResponse)) {
                             /* Clear possible exposed broadcast device after activating unicast */
                             if (mActiveBroadcastAudioDevice != null) {
                                 updateBroadcastActiveDevice(null, mActiveBroadcastAudioDevice, true);
