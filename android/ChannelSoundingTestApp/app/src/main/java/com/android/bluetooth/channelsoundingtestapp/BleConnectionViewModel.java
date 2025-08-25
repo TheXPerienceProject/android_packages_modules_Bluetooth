@@ -133,6 +133,10 @@ public class BleConnectionViewModel extends AndroidViewModel {
       }
     };
     public void updateconnectioninterval(String conn_priority) {
+      if(mBluetoothGatt == null) {
+        printLog("Bluetooth Gatt is null");
+        return;
+      }
       switch (conn_priority) {
         case "Balanced":
           mBluetoothGatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_BALANCED);
