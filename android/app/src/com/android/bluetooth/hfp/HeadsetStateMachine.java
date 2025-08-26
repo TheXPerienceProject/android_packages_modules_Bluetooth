@@ -3307,6 +3307,13 @@ class HeadsetStateMachine extends StateMachine {
         return matched;
     }
 
+    boolean isDeviceBlacklistedForInbandRingtone() {
+        boolean matched = InteropUtil.interopMatchAddrOrName(
+            InteropUtil.InteropFeature.INTEROP_INBAND_RINGTONE_SET_TO_FALSE,
+            mDevice.getAddress());
+        return matched;
+    }
+
     @Override
     protected void log(String msg) {
         super.log(msg);
