@@ -2035,7 +2035,7 @@ void Device::HandlePlayStatusUpdate() {
     log::warn("Device is not registered for play status updates");
     return;
   }
-
+  log::assert_that(media_interface_ != nullptr,"assert failed: media_interface_ == nullptr");
   media_interface_->GetPlayStatus(base::Bind(&Device::PlaybackStatusNotificationResponse,
                                              weak_ptr_factory_.GetWeakPtr(),
                                              play_status_changed_.second, false));
@@ -2048,7 +2048,7 @@ void Device::HandleNowPlayingUpdate() {
     log::warn("Device is not registered for now playing updates");
     return;
   }
-
+  log::assert_that(media_interface_ != nullptr,"assert failed: media_interface_ == nullptr");
   media_interface_->GetNowPlayingList(base::Bind(&Device::HandleNowPlayingNotificationResponse,
                                                  weak_ptr_factory_.GetWeakPtr(),
                                                  now_playing_changed_.second, false));
@@ -2145,7 +2145,7 @@ void Device::HandlePlayPosUpdate() {
     log::warn("Device is not registered for play position updates");
     return;
   }
-
+  log::assert_that(media_interface_ != nullptr,"assert failed: media_interface_ == nullptr");
   media_interface_->GetPlayStatus(base::Bind(&Device::PlaybackPosNotificationResponse,
                                              weak_ptr_factory_.GetWeakPtr(),
                                              play_pos_changed_.second, false));
