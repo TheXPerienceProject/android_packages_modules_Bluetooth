@@ -158,6 +158,7 @@ public:
     broadcasts_.clear();
     callbacks_ = nullptr;
     is_iso_running_ = false;
+    is_suspended_by_audio_ = false;
 
     if (!LeAudioClient::IsLeAudioClientRunning()) {
       IsoManager::GetInstance()->Stop();
@@ -1145,7 +1146,10 @@ private:
         case BroadcastStateMachine::State::CONFIGURED:
           if (com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
             instance->UpdateAudioActiveStateInPublicAnnouncement();
-            instance->le_audio_source_hal_client_->ConfirmSuspendRequest();
+            if(instance->is_suspended_by_audio_){
+              instance->le_audio_source_hal_client_->ConfirmSuspendRequest();
+              instance->is_suspended_by_audio_ = false;
+            }
           }
           break;
         case BroadcastStateMachine::State::ENABLING:
@@ -1422,6 +1426,7 @@ private:
       instance->audio_state_ = AudioState::SUSPENDED;
 
       if (com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
+        instance->is_suspended_by_audio_ = true;
         instance->UpdateAudioActiveStateInPublicAnnouncement();
         instance->setBroadcastTimers();
       } else {
@@ -1445,6 +1450,7 @@ private:
 
       instance->audio_state_ = AudioState::ACTIVE;
       if (com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
+        instance->is_suspended_by_audio_ = false;
         if (instance->broadcasts_.empty()) {
           log::warn("No broadcasts are ready to resume (pending: {} broadcasts)",
                     instance->pending_broadcasts_.size());
@@ -1527,6 +1533,9 @@ private:
 
   // Flag to track iso state
   bool is_iso_running_ = false;
+
+  // Flag of suspend request from audio
+  bool is_suspended_by_audio_ = false;
 
   static constexpr uint64_t kBigTerminateTimeoutMs = 0;
   static constexpr uint64_t kBroadcastStopTimeoutMs = 30 * 60 * 1000;
