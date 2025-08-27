@@ -5253,7 +5253,7 @@ public:
                 configuration_context_type_, bluetooth::le_audio::types::kLeAudioDirectionSink)) {
       log::error("invalid resume request for context type: {}",
                  ToHexString(configuration_context_type_));
-      CancelLocalAudioSourceStreamingRequest();
+      CancelLocalAudioSourceStreamingRequestWithUnsupported();
       return;
     }
 
@@ -5612,7 +5612,7 @@ public:
                 configuration_context_type_, bluetooth::le_audio::types::kLeAudioDirectionSource)) {
       log::error("invalid resume request for context type: {}",
                  ToHexString(configuration_context_type_));
-      CancelLocalAudioSinkStreamingRequest();
+      CancelLocalAudioSinkStreamingRequestWithUnsupported();
       return;
     }
 
