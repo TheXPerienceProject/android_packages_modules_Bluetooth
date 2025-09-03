@@ -6863,11 +6863,13 @@ public:
       log::error("Invalid group: {}", active_group_id_);
       return;
     }
-    log::warn("{} delay {} mode, streaming={}, pendingConfiguration={}",
-        delay, mode, group->IsStreaming(), group->IsPendingConfiguration());
+    log::warn("{} delay {} mode, streaming={}, pendingConfiguration={},\
+        audio_sender_state_={}", delay, mode, group->IsStreaming(),
+        group->IsPendingConfiguration(), audio_sender_state_);
     if (mode != 0xFF) {
       group->stream_conf.stream_params.sink.stream_config.mode = mode;
-      if (group->IsStreaming() && !group->IsPendingConfiguration()) {
+      if (group->IsStreaming() && !group->IsPendingConfiguration() &&
+          audio_sender_state_ == AudioState::STARTED) {
         log::warn("updating mode to bt audio hal");
         group->UpdateCisConfiguration(bluetooth::le_audio::types::kLeAudioDirectionSink);
         BidirectionalPair<uint16_t> delays_pair = {
@@ -6879,11 +6881,14 @@ public:
                   weak_factory_.GetWeakPtr(), std::placeholders::_1,
                   std::placeholders::_2));
         ConfirmLocalAudioSourceStreamingRequest(true);
+      } else {
+        log::debug("defer updating mode to bt audio hal");
       }
     }
     if (delay != 0xFFFF) {
       group->stream_conf.stream_params.sink.stream_config.peer_delay_ms = delay;
-      if (group->IsStreaming() && !group->IsPendingConfiguration()) {
+      if (group->IsStreaming() && !group->IsPendingConfiguration() &&
+          audio_sender_state_ == AudioState::STARTED) {
         log::warn("updating delay to bt audio hal");
         group->UpdateCisConfiguration(bluetooth::le_audio::types::kLeAudioDirectionSink);
         BidirectionalPair<uint16_t> delays_pair = {
@@ -6895,6 +6900,8 @@ public:
                   weak_factory_.GetWeakPtr(), std::placeholders::_1,
                   std::placeholders::_2));
         ConfirmLocalAudioSourceStreamingRequest(true);
+      } else {
+        log::debug("defer updating delay to bt audio hal");
       }
     }
   }
