@@ -230,6 +230,16 @@ void le_audio_gattc_callback(tBTA_GATTC_EVT event, tBTA_GATTC* p_data);
 static void le_audio_health_status_callback(const RawAddress& addr, int group_id,
                                             LeAudioHealthBasedAction action);
 
+class LeXDeferDevice {
+public:
+  RawAddress rawAddress;
+  int group_id;
+  bool operator==(const LeXDeferDevice& rhs) const {
+    return (rhs.rawAddress == rawAddress) && (rhs.group_id == group_id);
+  }
+};
+
+
 class LeAudioClientImpl;
 LeAudioClientImpl* instance;
 std::mutex instance_mutex;
@@ -259,9 +269,12 @@ constexpr uint8_t  LTV_LEN_MAX_FT                       = 0X01;
 
 constexpr uint8_t  ENCODER_LIMITS_SUB_OP                = 0x24;
 
-constexpr uint8_t  IN_CALL_TRUE_UPDATE_FROM_BT_APP      = 0x01;
-constexpr uint8_t  IN_CALL_UPDATE_METADATA_FROM_BT_HAL  = 0x02;
-constexpr uint8_t  IN_CALL_UPDATE_FROM_BT_APP_AND_BT_HAL= 0x03;
+constexpr uint8_t  CALL_START_UPDATE_FROM_BT_APP      = 0x01;
+constexpr uint8_t  CALL_START_UPDATE_METADATA_FROM_BT_HAL  = 0x02;
+constexpr uint8_t  CALL_START_UPDATE_FROM_BT_APP_AND_BT_HAL= 0x03;
+constexpr uint8_t  CALL_END_UPDATE_FROM_BT_APP      = 0x04;
+constexpr uint8_t  CALL_END_UPDATE_METADATA_FROM_BT_HAL  = 0x08;
+constexpr uint8_t  CALL_END_UPDATE_FROM_BT_APP_AND_BT_HAL= 0x0C;
 
 typedef struct {
   uint8_t cig_id;
@@ -522,7 +535,8 @@ public:
         defer_sink_suspend_ack_until_stop_(false),
         defer_source_suspend_ack_until_stop_(false),
         is_local_sink_metadata_available_(false),
-        track_in_call_update_(0),
+        track_call_start_update_(0),
+        track_call_end_update_(0),
         defer_reconfig_complete_update_(false),
         le_audio_source_hal_client_(nullptr),
         le_audio_sink_hal_client_(nullptr),
@@ -1421,12 +1435,16 @@ public:
       //Check below when device switch happens during call and enhance if required.
       if (IsInCall()) {
         log::debug("Clear cached call updates during group In-Active");
-        track_in_call_update_ = 0;
+        track_call_start_update_ = 0;
         defer_reconfig_complete_update_ = false;
         auto group = aseGroups_.FindById(group_id);
         if (group) {
           group->ClearStreamingPendingTargetState();
         }
+      } else {
+        log::debug("Clear cached call end updates during group In-Active");
+        track_call_end_update_ = 0;
+        defer_reconfig_complete_update_ = false;
       }
       callbacks_->OnGroupStatus(group_id, GroupStatus::INACTIVE);
     }
@@ -1609,8 +1627,7 @@ public:
   void SetInCall(bool in_call) override {
     log::debug("in_call: {}", in_call);
     if (!in_call) {
-      track_in_call_update_ = 0;
-      defer_reconfig_complete_update_ = false;
+      track_call_start_update_ = 0;
     }
 
     if (in_call == in_call_) {
@@ -1687,8 +1704,8 @@ public:
     log::debug("reconfigure: {} ", reconfigure);
     if (reconfigure) {
       if (in_call_) {
-        track_in_call_update_ |= IN_CALL_TRUE_UPDATE_FROM_BT_APP;
-        log::debug("set track_in_call_update_: {} ", track_in_call_update_);
+        track_call_start_update_ |= CALL_START_UPDATE_FROM_BT_APP;
+        log::debug("set track_call_start_update_: {} ", track_call_start_update_);
         if (((audio_sender_state_ == AudioState::IDLE) &&
              (audio_receiver_state_ == AudioState::IDLE)) ||
             (audio_sender_state_ > AudioState::IDLE)) {
@@ -1697,6 +1714,8 @@ public:
           ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSource);
         }
       } else {
+        track_call_end_update_ |= CALL_END_UPDATE_FROM_BT_APP;
+        log::debug("set track_call_end_update_: {} ", track_call_end_update_);
         ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
       }
     }
@@ -1963,12 +1982,16 @@ public:
       //Check below when device switch happens during call and enhance if required.
       if (IsInCall()) {
         log::debug("Clear cached call updates during group In-Active");
-        track_in_call_update_ = 0;
+        track_call_start_update_ = 0;
         defer_reconfig_complete_update_ = false;
         auto group = aseGroups_.FindById(active_group_id_);
         if (group) {
           group->ClearStreamingPendingTargetState();
         }
+      } else {
+        log::debug("Clear cached call end updates during group In-Active");
+        track_call_end_update_ = 0;
+        defer_reconfig_complete_update_ = false;
       }
       StopAudio();
       ClientAudioInterfaceRelease();
@@ -2079,6 +2102,19 @@ public:
     LeAudioDeviceGroup* group = aseGroups_.FindById(group_id);
     if (!group) {
       log::error("Invalid group: {}", static_cast<int>(group_id));
+      callbacks_->OnGroupStatus(group_id, GroupStatus::INACTIVE);
+      return;
+    }
+
+    if (group->GetFirstDevice()->isLeXDevice() && !isLeXtransportAvailable(group)) {
+      log::error("Defer making the device active {}", static_cast<int>(group_id));
+      auto it = std::find_if(defer_active_device.begin(), defer_active_device.end(),
+          [&group](const auto& dev){ return dev.rawAddress == group->GetFirstDevice()->address_;});
+      if (it == defer_active_device.end()) {
+        defer_active_device.push_back({group->GetFirstDevice()->address_, group->group_id_});
+      } else {
+        log::error("Already defered device active {}", static_cast<int>(group_id));
+      }
       callbacks_->OnGroupStatus(group_id, GroupStatus::INACTIVE);
       return;
     }
@@ -5901,26 +5937,45 @@ public:
             ToString(audio_receiver_state_), ToString(audio_sender_state_),
             static_cast<int>(dsa_mode));
 
-    log::debug("check track_in_call_update_= {}", track_in_call_update_);
+    log::debug("check track_call_start_update_= {}", track_call_start_update_);
     //Assuming BT-App updates to BT-Stack before UpdateMetadata from BT-HAL
     //during use-case switch to Call.
-    if (IsInCall() && track_in_call_update_ != 0) {
+    if (IsInCall() && track_call_start_update_ != 0) {
       if (local_metadata_context_types_.source.test(LeAudioContextType::CONVERSATIONAL) ||
           local_metadata_context_types_.source.test(LeAudioContextType::RINGTONE)) {
-        track_in_call_update_ |= IN_CALL_UPDATE_METADATA_FROM_BT_HAL;
-        log::debug("set track_in_call_update_= {}", track_in_call_update_);
+        track_call_start_update_ |= CALL_START_UPDATE_METADATA_FROM_BT_HAL;
+        log::debug("set track_call_start_update_= {}", track_call_start_update_);
       }
 
-      log::debug("check track_in_call_update_= {}, defer_reconfig_complete_update_: {}",
-                 track_in_call_update_, defer_reconfig_complete_update_);
+      log::debug("check track_call_start_update_= {}, defer_reconfig_complete_update_: {}",
+                 track_call_start_update_, defer_reconfig_complete_update_);
 
-      if (track_in_call_update_ == IN_CALL_UPDATE_FROM_BT_APP_AND_BT_HAL &&
+      if (track_call_start_update_ == CALL_START_UPDATE_FROM_BT_APP_AND_BT_HAL &&
           defer_reconfig_complete_update_) {
         log::warn("Both BT App and UpdateMetadata received for call,"
                   " send reconfigurationComplete to BT HAL");
         reconfigurationComplete();
       } else {
         log::warn("Both BT App and UpdateMetadata received for call b2b,"
+                  " Don't send reconfigurationComplete to BT HAL now");
+      }
+    } else if (!IsInCall() && track_call_end_update_ != 0) {
+      if (!local_metadata_context_types_.source.test(LeAudioContextType::CONVERSATIONAL) &&
+          !local_metadata_context_types_.source.test(LeAudioContextType::RINGTONE)) {
+        track_call_end_update_ |= CALL_END_UPDATE_METADATA_FROM_BT_HAL;
+        log::debug("set track_call_end_update_= {}", track_call_end_update_);
+      }
+
+      log::debug("check track_call_end_update_= {}, defer_reconfig_complete_update_: {}",
+                 track_call_end_update_, defer_reconfig_complete_update_);
+
+      if (track_call_end_update_ == CALL_END_UPDATE_FROM_BT_APP_AND_BT_HAL &&
+          defer_reconfig_complete_update_) {
+        log::warn("Both BT App and UpdateMetadata received for end of call,"
+                  " send reconfigurationComplete to BT HAL");
+        reconfigurationComplete();
+      } else {
+        log::warn("Both BT App and UpdateMetadata received for end call b2b,"
                   " Don't send reconfigurationComplete to BT HAL now");
       }
     }
@@ -6789,6 +6844,15 @@ public:
       if (it == lexAvailableTransportDevices_.end()) {
         lexAvailableTransportDevices_.push_back(rawAddress);
       }
+      auto itr = std::find_if(defer_active_device.begin(),
+          defer_active_device.end(), [&rawAddress](const auto& dev){
+          return dev.rawAddress == rawAddress;});
+      if (itr != defer_active_device.end()) {
+        log::warn("setting active delayed device");
+        GroupSetActive(itr->group_id);
+        defer_active_device.erase(std::remove(defer_active_device.begin(),
+          defer_active_device.end(), (*itr)), defer_active_device.end());
+      }
     }
   }
 
@@ -6848,6 +6912,14 @@ public:
           std::remove(lexAvailableTransportDevices_.begin(),
           lexAvailableTransportDevices_.end(), (*it)),
           lexAvailableTransportDevices_.end());
+    }
+    auto itr = std::find_if(defer_active_device.begin(),
+        defer_active_device.end(), [&bd_addr](const auto& dev){
+        return dev.rawAddress == bd_addr;});
+    if (itr != defer_active_device.end()) {
+      log::info("found device in defer_active_device to remove.");
+      defer_active_device.erase(std::remove(defer_active_device.begin(),
+        defer_active_device.end(), (*itr)), defer_active_device.end());
     }
   }
 
@@ -7023,7 +7095,8 @@ public:
 
     //make sure during reconfig completion clear the below flags,
     //which were set during some other use-case to Call.
-    track_in_call_update_ = 0;
+    track_call_start_update_ = 0;
+    track_call_end_update_ = 0;
     defer_reconfig_complete_update_ = false;
 
     /* We are done with reconfiguration.
@@ -7143,11 +7216,11 @@ public:
         break;
       case GroupStreamStatus::CONFIGURED_BY_USER:
         if (is_active_group_operation) {
-          log::warn("track_in_call_update_: {}, defer_reconfig_complete_update_:{}",
-                    track_in_call_update_, defer_reconfig_complete_update_);
+          log::warn("track_call_start_update_: {}, defer_reconfig_complete_update_:{}",
+                    track_call_start_update_, defer_reconfig_complete_update_);
           if (IsInCall()) {
-            if(track_in_call_update_ != 0) {
-              if (track_in_call_update_ == IN_CALL_UPDATE_FROM_BT_APP_AND_BT_HAL) {
+            if(track_call_start_update_ != 0) {
+              if (track_call_start_update_ == CALL_START_UPDATE_FROM_BT_APP_AND_BT_HAL) {
                 log::warn("Both BT App and UpdateMetadata received for call,"
                           " send reconfigurationComplete to BT HAL");
                 reconfigurationComplete();
@@ -7174,7 +7247,19 @@ public:
 
             }
           } else {
-            reconfigurationComplete();
+            if(track_call_end_update_ != 0) {
+              if (track_call_end_update_ == CALL_END_UPDATE_FROM_BT_APP_AND_BT_HAL) {
+                log::warn("Both BT App and UpdateMetadata received for call end,"
+                          " send reconfigurationComplete to BT HAL");
+                reconfigurationComplete();
+              } else {
+                defer_reconfig_complete_update_ = true;
+                log::warn("Both BT App and UpdateMetadata not received for call end,"
+                          " Don't send reconfigurationComplete to BT HAL now");
+              }
+            } else {
+              reconfigurationComplete();
+            }
           }
         }
         break;
@@ -7439,7 +7524,9 @@ private:
   /*To know whether MM sent sink track update Metadata */
   bool is_local_sink_metadata_available_;
   /*To track in call updates from BT app and BT HAL*/
-  uint8_t track_in_call_update_;
+  uint8_t track_call_start_update_;
+  /*To track out call updates from BT app and BT HAL*/
+  uint8_t track_call_end_update_;
   /*To track reconfig competle update sent to BT HAL*/
   bool defer_reconfig_complete_update_;
 
@@ -7518,6 +7605,7 @@ private:
   std::map<int, GroupStreamStatus> lastNotifiedGroupStreamStatusMap_;
 
   std::vector<RawAddress> lexAvailableTransportDevices_;
+  std::vector<LeXDeferDevice> defer_active_device;
 
   void ClientAudioInterfaceRelease() {
     auto group = aseGroups_.FindById(active_group_id_);
