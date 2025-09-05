@@ -230,6 +230,16 @@ void le_audio_gattc_callback(tBTA_GATTC_EVT event, tBTA_GATTC* p_data);
 static void le_audio_health_status_callback(const RawAddress& addr, int group_id,
                                             LeAudioHealthBasedAction action);
 
+class LeXDeferDevice {
+public:
+  RawAddress rawAddress;
+  int group_id;
+  bool operator==(const LeXDeferDevice& rhs) const {
+    return (rhs.rawAddress == rawAddress) && (rhs.group_id == group_id);
+  }
+};
+
+
 class LeAudioClientImpl;
 LeAudioClientImpl* instance;
 std::mutex instance_mutex;
@@ -2092,6 +2102,19 @@ public:
     LeAudioDeviceGroup* group = aseGroups_.FindById(group_id);
     if (!group) {
       log::error("Invalid group: {}", static_cast<int>(group_id));
+      callbacks_->OnGroupStatus(group_id, GroupStatus::INACTIVE);
+      return;
+    }
+
+    if (group->GetFirstDevice()->isLeXDevice() && !isLeXtransportAvailable(group)) {
+      log::error("Defer making the device active {}", static_cast<int>(group_id));
+      auto it = std::find_if(defer_active_device.begin(), defer_active_device.end(),
+          [&group](const auto& dev){ return dev.rawAddress == group->GetFirstDevice()->address_;});
+      if (it == defer_active_device.end()) {
+        defer_active_device.push_back({group->GetFirstDevice()->address_, group->group_id_});
+      } else {
+        log::error("Already defered device active {}", static_cast<int>(group_id));
+      }
       callbacks_->OnGroupStatus(group_id, GroupStatus::INACTIVE);
       return;
     }
@@ -6821,6 +6844,15 @@ public:
       if (it == lexAvailableTransportDevices_.end()) {
         lexAvailableTransportDevices_.push_back(rawAddress);
       }
+      auto itr = std::find_if(defer_active_device.begin(),
+          defer_active_device.end(), [&rawAddress](const auto& dev){
+          return dev.rawAddress == rawAddress;});
+      if (itr != defer_active_device.end()) {
+        log::warn("setting active delayed device");
+        GroupSetActive(itr->group_id);
+        defer_active_device.erase(std::remove(defer_active_device.begin(),
+          defer_active_device.end(), (*itr)), defer_active_device.end());
+      }
     }
   }
 
@@ -6880,6 +6912,14 @@ public:
           std::remove(lexAvailableTransportDevices_.begin(),
           lexAvailableTransportDevices_.end(), (*it)),
           lexAvailableTransportDevices_.end());
+    }
+    auto itr = std::find_if(defer_active_device.begin(),
+        defer_active_device.end(), [&bd_addr](const auto& dev){
+        return dev.rawAddress == bd_addr;});
+    if (itr != defer_active_device.end()) {
+      log::info("found device in defer_active_device to remove.");
+      defer_active_device.erase(std::remove(defer_active_device.begin(),
+        defer_active_device.end(), (*itr)), defer_active_device.end());
     }
   }
 
@@ -7565,6 +7605,7 @@ private:
   std::map<int, GroupStreamStatus> lastNotifiedGroupStreamStatusMap_;
 
   std::vector<RawAddress> lexAvailableTransportDevices_;
+  std::vector<LeXDeferDevice> defer_active_device;
 
   void ClientAudioInterfaceRelease() {
     auto group = aseGroups_.FindById(active_group_id_);
