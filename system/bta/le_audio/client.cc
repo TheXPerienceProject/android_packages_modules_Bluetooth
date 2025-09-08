@@ -6863,10 +6863,11 @@ public:
       log::error("Invalid group: {}", active_group_id_);
       return;
     }
-    log::warn("{} delay {} mode.", delay, mode);
+    log::warn("{} delay {} mode, streaming={}, pendingConfiguration={}",
+        delay, mode, group->IsStreaming(), group->IsPendingConfiguration());
     if (mode != 0xFF) {
       group->stream_conf.stream_params.sink.stream_config.mode = mode;
-      if (group->IsStreaming()) {
+      if (group->IsStreaming() && !group->IsPendingConfiguration()) {
         log::warn("updating mode to bt audio hal");
         group->UpdateCisConfiguration(bluetooth::le_audio::types::kLeAudioDirectionSink);
         BidirectionalPair<uint16_t> delays_pair = {
@@ -6882,7 +6883,7 @@ public:
     }
     if (delay != 0xFFFF) {
       group->stream_conf.stream_params.sink.stream_config.peer_delay_ms = delay;
-      if (group->IsStreaming()) {
+      if (group->IsStreaming() && !group->IsPendingConfiguration()) {
         log::warn("updating delay to bt audio hal");
         group->UpdateCisConfiguration(bluetooth::le_audio::types::kLeAudioDirectionSink);
         BidirectionalPair<uint16_t> delays_pair = {
