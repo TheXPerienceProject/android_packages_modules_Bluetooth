@@ -2519,6 +2519,7 @@ private:
       case AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING: {
         SetAseState(leAudioDevice, ase, AseState::BTA_LE_AUDIO_ASE_STATE_IDLE);
         ase->active = false;
+        ase->reconfigure = false;
         ase->configured_for_context_type =
                 bluetooth::le_audio::types::LeAudioContextType::UNINITIALIZED;
 
@@ -2959,6 +2960,7 @@ private:
       case AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING:
         SetAseState(leAudioDevice, ase, AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED);
         ase->active = false;
+        ase->reconfigure = false;
 
         if (!leAudioDevice->HaveAllActiveAsesSameState(
                     AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED)) {
@@ -3319,6 +3321,7 @@ private:
       } else {
         log::info("{}, ase: {} already in idle. Deactivate it", leAudioDevice->address_, ase->id);
         ase->active = false;
+        ase->reconfigure = false;
       }
     } while ((ase = leAudioDevice->GetNextActiveAse(ase)));
 
