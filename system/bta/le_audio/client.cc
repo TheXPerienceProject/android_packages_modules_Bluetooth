@@ -982,6 +982,15 @@ public:
                                               kLogAfSuspendForReconfig + "LocalSource",
                                               "r_state: " + ToString(audio_receiver_state_) +
                                                       "s_state: " + ToString(audio_sender_state_));
+      if (audio_receiver_state_ == AudioState::IDLE) {
+        LeAudioDeviceGroup* group = aseGroups_.FindById(active_group_id_);
+        if (group && IsDirectionAvailableForCurrentConfiguration(
+                            group, bluetooth::le_audio::types::kLeAudioDirectionSource)) {
+          log::info("Suspended for SNK since current context has directional config");
+          le_audio_sink_hal_client_->SuspendedForReconfiguration();
+        }
+      }
+
       if(le_audio_source_hal_client_) {
         le_audio_source_hal_client_->SuspendedForReconfiguration();
       }
@@ -991,6 +1000,15 @@ public:
                                               kLogAfSuspendForReconfig + "LocalSink",
                                               "r_state: " + ToString(audio_receiver_state_) +
                                                       "s_state: " + ToString(audio_sender_state_));
+      if (audio_sender_state_ == AudioState::IDLE) {
+        LeAudioDeviceGroup* group = aseGroups_.FindById(active_group_id_);
+        if (group && IsDirectionAvailableForCurrentConfiguration(
+                            group, bluetooth::le_audio::types::kLeAudioDirectionSink)) {
+          log::info("Suspended for SRC since current context has directional config");
+          le_audio_source_hal_client_->SuspendedForReconfiguration();
+        }
+      }
+
       if(le_audio_sink_hal_client_) {
         le_audio_sink_hal_client_->SuspendedForReconfiguration();
       }
@@ -7093,9 +7111,26 @@ public:
     // Check which directions were suspended
     uint8_t previously_active_directions = 0;
     if (audio_sender_state_ >= AudioState::READY_TO_START) {
+      if (audio_receiver_state_ == AudioState::IDLE) {
+        LeAudioDeviceGroup* group = aseGroups_.FindById(active_group_id_);
+        if (group && IsDirectionAvailableForCurrentConfiguration(
+                                group, bluetooth::le_audio::types::kLeAudioDirectionSource)) {
+          log::info("Reconfiguration complete for SNK since current context has SNK config");
+          previously_active_directions |= bluetooth::le_audio::types::kLeAudioDirectionSource;
+        }
+      }
       previously_active_directions |= bluetooth::le_audio::types::kLeAudioDirectionSink;
     }
     if (audio_receiver_state_ >= AudioState::READY_TO_START) {
+      if (audio_sender_state_ == AudioState::IDLE) {
+        LeAudioDeviceGroup* group = aseGroups_.FindById(active_group_id_);
+        if (group && IsDirectionAvailableForCurrentConfiguration(
+                                  group, bluetooth::le_audio::types::kLeAudioDirectionSink)) {
+          log::info("Reconfiguration complete for SRC since current context has SRC config");
+          previously_active_directions |= bluetooth::le_audio::types::kLeAudioDirectionSink;
+        }
+      }
+
       previously_active_directions |= bluetooth::le_audio::types::kLeAudioDirectionSource;
     }
 
