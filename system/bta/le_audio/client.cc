@@ -1652,6 +1652,18 @@ public:
       group->ClearStreamingPendingTargetState();
     }
 
+    //Sometimes metadata uopdates call comes before BT-App updates call
+    if (in_call_ && track_call_start_update_ != 0) {
+      track_call_start_update_ |= CALL_START_UPDATE_FROM_BT_APP;
+      log::debug("set track_call_start_update_ when BT-App comes after metadata");
+      if (track_call_start_update_ == CALL_START_UPDATE_FROM_BT_APP_AND_BT_HAL &&
+          defer_reconfig_complete_update_) {
+        log::warn("Both BT App and UpdateMetadata received for call,"
+                  " send reconfigurationComplete to BT HAL");
+        reconfigurationComplete();
+      }
+    }
+
     //If group is under configuring/streaming to other context, it should do reconfiguration.
     if (!group || (!group->IsStreaming() &&
                     group->GetTargetState() != AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING &&
@@ -5938,7 +5950,9 @@ public:
     log::debug("check track_call_start_update_= {}", track_call_start_update_);
     //Assuming BT-App updates to BT-Stack before UpdateMetadata from BT-HAL
     //during use-case switch to Call.
-    if (IsInCall() && track_call_start_update_ != 0) {
+    if ((IsInCall() && track_call_start_update_ != 0) ||
+        (!IsInCall() && track_call_start_update_ == 0 &&
+         track_call_end_update_ == 0)) {
       if (local_metadata_context_types_.source.test(LeAudioContextType::CONVERSATIONAL) ||
           local_metadata_context_types_.source.test(LeAudioContextType::RINGTONE)) {
         track_call_start_update_ |= CALL_START_UPDATE_METADATA_FROM_BT_HAL;
