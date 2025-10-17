@@ -1228,7 +1228,13 @@ void bta_ag_at_hfp_cback(tBTA_AG_SCB* p_scb, uint16_t cmd, uint8_t arg_type, cha
            log::verbose("do not send inband ringtone supported for blacklisted device");
           p_scb->masked_features = p_scb->masked_features & ~(BTA_AG_FEAT_INBAND);
       }
-      if(interop_match_addr_or_name(INTEROP_DISABLE_CODEC_NEGOTIATION,
+
+     if (osi_property_get_bool("vendor.bt.pts.disable_3way_calling", false)) {
+        log::verbose("disabling 3-way calling");
+        p_scb->masked_features &= ~(BTA_AG_FEAT_3WAY);
+      }
+
+     if (interop_match_addr_or_name(INTEROP_DISABLE_CODEC_NEGOTIATION,
           &p_scb->peer_addr, &btif_storage_get_remote_device_property)) {
           log::verbose("disable codec negotiation, remote for blacklisted device");
           p_scb->masked_features = p_scb->masked_features & ~(BTA_AG_FEAT_CODEC);
