@@ -102,6 +102,7 @@ static constexpr uint16_t kEnableSecurityTimeoutMs = 10000;  // 10s
 long long proc_start_timestampMs;
 long long curr_proc_complete_timestampMs;
 bool is_ras_packets_delayed = false;
+bool procedure_disable_in_progress = false;
 static constexpr uint16_t kProcedureScheduleGuardMs = 1000;  // 1s
 static constexpr double kConnIntervalUnitMs = 1.25;          // 1.25 ms
 
@@ -488,6 +489,12 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     *has_updated_procedure_params = false;
     auto it = cs_requester_trackers_.find(connection_handle);
     if (it != cs_requester_trackers_.end()) {
+      if(procedure_disable_in_progress) {
+        log::warn("Attempt to start measurement while procedure disable is still pending (state=HOLD)");
+        distance_measurement_callbacks_->OnDistanceMeasurementStopped(
+		      cs_remote_address, REASON_INTERNAL_ERROR, METHOD_CS);
+        return false;
+      }
       if (it->second.address != cs_remote_address) {
         log::debug("replace old tracker as {}", cs_remote_address);
         it->second = CsTracker();
@@ -1135,8 +1142,9 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
         log::info("no procedure disable command needed for state {}.", (int)it->second.state);
         return;
       }
+      procedure_disable_in_progress = true;
     }
-
+    
     hci_layer_->EnqueueCommand(
             LeCsProcedureEnableBuilder::Create(connection_handle, it->second.used_config_id,
                                                enable),
@@ -1619,6 +1627,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
                                         valid_responder_states);
         if (live_tracker == nullptr) {
           log::error("disable - no tracker is available for {}", connection_handle);
+          procedure_disable_in_progress = false;
           return;
         }
         if (is_ras_packets_delayed) {
@@ -1630,6 +1639,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
           send_le_cs_procedure_enable(connection_handle, Enable::ENABLED);
           return;
         }
+        procedure_disable_in_progress = false;
         reset_tracker_on_stopped(*live_tracker);
       } else {
         // work around, controller may send 'DISABLE' complete with error for 'ENABLE' command
