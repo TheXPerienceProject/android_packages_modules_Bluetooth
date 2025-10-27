@@ -52,6 +52,7 @@
 using namespace bluetooth::ras;
 using bluetooth::hal::ProcedureDataV2;
 using bluetooth::hci::acl_manager::PacketViewForRecombination;
+using bluetooth::hal::ChannelSoundingParameters;
 
 namespace bluetooth {
 namespace hci {
@@ -264,6 +265,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     uint16_t event_interval = 0;
     uint16_t procedure_interval = 0;
     uint16_t max_procedure_len = 0;
+    ChannelSoundingParameters channel_sounding_parameters;
     // RAS data
     RangingHeader ranging_header_;
     PacketViewForRecombination segment_data_;
@@ -409,8 +411,9 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       return;
     }
 
-    log::info("Address:{}, connection_handle:{}, CsSecurityLevel:{} frequency:{}",
-               cs_remote_address, connection_handle, mCsSecurityLevel, mFrequency);
+    log::info("Address:{}, connection_handle:{}, CsSecurityLevel:{} frequency:{} "
+              "mLocationType:{} mSightType:{}", cs_remote_address, connection_handle,
+              mCsSecurityLevel, mFrequency, mLocationType, mSightType);
 
     if (set_cs_params_.find(connection_handle) != set_cs_params_.end() &&
         set_cs_params_[connection_handle].address != cs_remote_address) {
@@ -429,14 +432,16 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     tCS_CONFIG cs_config_setting;
     mCsSecurityLevel = mCsSecurityLevel-1;
     if ((mCsSecurityLevel >=0  && mCsSecurityLevel <= 4) &&
-	(mFrequency >= 0 && mFrequency <= 2)) {
-       if (get_cs_procedure_settings(mFrequency, &cs_proc_setting) &&
-           get_cs_config_settings(mCsSecurityLevel, &cs_config_setting) &&
-	   (set_cs_params_.find(connection_handle) == set_cs_params_.end())) {
-         set_cs_params_[connection_handle].address = cs_remote_address;
-	 set_cs_params_[connection_handle].cs_conf_settings.push_back(cs_config_setting);
-	 set_cs_params_[connection_handle].cs_proc_settings.push_back(cs_proc_setting);
-       }
+	   (mFrequency >= 0 && mFrequency <= 2)) {
+      if (get_cs_procedure_settings(mFrequency, &cs_proc_setting) &&
+          get_cs_config_settings(mCsSecurityLevel, &cs_config_setting) &&
+	        (set_cs_params_.find(connection_handle) == set_cs_params_.end())) {
+        set_cs_params_[connection_handle].address = cs_remote_address;
+        set_cs_params_[connection_handle].cs_conf_settings.push_back(cs_config_setting);
+        set_cs_params_[connection_handle].cs_proc_settings.push_back(cs_proc_setting);
+        set_cs_params_[connection_handle].location_type = mLocationType;
+        set_cs_params_[connection_handle].sight_type = mSightType;
+      }
     } else {
       log::warn("using default configs");
     }
@@ -557,6 +562,11 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     it->second.local_hci_role = local_hci_role;
     it->second.retry_counter_for_create_config = 0;
     it->second.retry_counter_for_cs_enable = 0;
+    it->second.channel_sounding_parameters.location_type_ =
+      set_cs_params_[connection_handle].location_type;
+    it->second.channel_sounding_parameters.sight_type_ =
+      set_cs_params_[connection_handle].sight_type;
+
     return true;
   }
 
@@ -656,9 +666,11 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     it->second.conn_interval_ = conn_interval;
     it->second.ras_connected = true;
     it->second.state = CsTrackerState::RAS_CONNECTED;
+    it->second.channel_sounding_parameters.acl_handle_ = connection_handle;
+    it->second.channel_sounding_parameters.real_time_procedure_data_att_handle_ = att_handle;
 
     if (ranging_hal_->IsBound()) {
-      ranging_hal_->OpenSession(connection_handle, att_handle, vendor_specific_data);
+      ranging_hal_->OpenSession(it->second.channel_sounding_parameters, vendor_specific_data);
       return;
     }
     start_distance_measurement_with_cs(it->second.address, connection_handle, false);
@@ -3094,6 +3106,8 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     Address address;
     std::vector<tCS_PROCEDURE_PARAM> cs_proc_settings;
     std::vector<tCS_CONFIG> cs_conf_settings;
+    int location_type;
+    int sight_type;
   };
 
   os::Handler* handler_ = nullptr;
