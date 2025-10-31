@@ -732,7 +732,7 @@ void do_l2cap_init(char* p) {
   property_get("persist.vendor.qcom.bluetooth.l2c_opt", l2c_opt, "0");
   g_l2cap_option = atoi(l2c_opt);
   if(g_l2cap_option == L2CAP_PROP_FOC_ENABLED) {
-    tl2cap_cfg_info.fcs = 1;
+    tl2cap_cfg_info.fcs = g_l2cap_option;
   } else {
     tl2cap_cfg_info.fcs = 0;
   }
