@@ -473,11 +473,18 @@ void bta_ag_rfc_close(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
 
   /* stop timers */
   alarm_cancel(p_scb->ring_timer);
-  alarm_cancel(p_scb->codec_negotiation_timer);
 
   close.hdr.handle = bta_ag_scb_to_idx(p_scb);
   close.hdr.app_id = p_scb->app_id;
   close.bd_addr = p_scb->peer_addr;
+
+  if (alarm_is_scheduled(p_scb->codec_negotiation_timer)) {
+    alarm_cancel(p_scb->codec_negotiation_timer);
+    /* Announce that codec negotiation failed. */
+    bta_ag_sco_codec_nego(p_scb, false);
+    /* call audio close callback */
+    (*bta_ag_cb.p_cback)(BTA_AG_AUDIO_CLOSE_EVT, (tBTA_AG*)&close);
+  }
 
   bta_sys_conn_close(BTA_ID_AG, p_scb->app_id, p_scb->peer_addr);
 
