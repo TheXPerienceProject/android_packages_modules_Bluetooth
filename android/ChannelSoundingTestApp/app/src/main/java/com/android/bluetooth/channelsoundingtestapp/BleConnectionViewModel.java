@@ -395,6 +395,10 @@ public class BleConnectionViewModel extends AndroidViewModel {
 
     private void connectGattByScanning() {
         BluetoothLeScanner bluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
+        if (bluetoothLeScanner == null) {
+            printLog("Please turn on Bluetooth to use this App");
+            return;
+        }
 
         List<ScanFilter> filters = new ArrayList<>();
         ScanFilter filter =
