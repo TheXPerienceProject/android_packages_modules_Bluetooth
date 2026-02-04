@@ -74,13 +74,7 @@ class HeadsetServiceBinder extends IBluetoothHeadset.Stub implements IProfileSer
             return false;
         }
 
-        try {
-            service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
-        } catch (SecurityException e) {
-            /* see android.bluetooth.BluetoothHeadset#connect */
-            Utils.enforceBluetoothPrivilegedAndroidAutoOrThrow(service, e);
-        }
-
+        service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
         return service.connect(device);
     }
 
@@ -129,14 +123,8 @@ class HeadsetServiceBinder extends IBluetoothHeadset.Stub implements IProfileSer
             return false;
         }
 
-        try {
-            service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
-            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
-        } catch (SecurityException e) {
-            /* see android.bluetooth.BluetoothHeadset#setConnectionPolicy */
-            Utils.enforceBluetoothPrivilegedAndroidAutoOrThrow(service, e);
-        }
-
+        service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
+        service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
         return service.setConnectionPolicy(device, connectionPolicy);
     }
 
