@@ -34,7 +34,6 @@ import android.annotation.SdkConstant.SdkConstantType;
 import android.annotation.SuppressLint;
 import android.annotation.SystemApi;
 import android.app.compat.CompatChanges;
-import android.app.compat.gms.GmsCompat;
 import android.bluetooth.annotations.RequiresBluetoothConnectPermission;
 import android.bluetooth.annotations.RequiresBluetoothLocationPermission;
 import android.bluetooth.annotations.RequiresBluetoothScanPermission;
@@ -1841,9 +1840,6 @@ public final class BluetoothDevice implements Parcelable, Attributable {
                 return service.getIdentityAddress(mAddress);
             } catch (RemoteException e) {
                 Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
-            } catch (SecurityException se) {
-                GmsCompat.catchOrRethrow(se);
-                return null;
             }
         }
         return null;
@@ -2762,8 +2758,6 @@ public final class BluetoothDevice implements Parcelable, Attributable {
                 return service.setPairingConfirmation(this, confirm, mAttributionSource);
             } catch (RemoteException e) {
                 Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
-            } catch (SecurityException se) {
-                GmsCompat.catchOrRethrow(se);
             }
         }
         return false;
@@ -2836,8 +2830,6 @@ public final class BluetoothDevice implements Parcelable, Attributable {
                 return service.setSilenceMode(this, silence, mAttributionSource);
             } catch (RemoteException e) {
                 Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
-            } catch (SecurityException se) {
-                GmsCompat.catchOrRethrow(se);
             }
         }
         return false;
@@ -3559,8 +3551,6 @@ public final class BluetoothDevice implements Parcelable, Attributable {
                 return service.setMetadata(this, key, value, mAttributionSource);
             } catch (RemoteException e) {
                 Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
-            } catch (SecurityException se) {
-                GmsCompat.catchOrRethrow(se);
             }
         }
         return false;
@@ -3586,8 +3576,6 @@ public final class BluetoothDevice implements Parcelable, Attributable {
                 return service.getMetadata(this, key, mAttributionSource);
             } catch (RemoteException e) {
                 Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
-            } catch (SecurityException se) {
-                GmsCompat.catchOrRethrow(se);
             }
         }
         return null;
