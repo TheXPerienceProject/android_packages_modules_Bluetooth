@@ -22,4 +22,4 @@
 // This header contains functions for BTA advanced audio/video to invoke
 
 using tL2C_COEX_READY = base::OnceCallback<void(bool)>;
-void l2c_link_set_br_coex_buf_cap(uint16_t bufs_to_disable, tL2C_COEX_READY cb);
+void l2c_link_set_br_coex_buf_cap(uint16_t bufs_to_reserve, tL2C_COEX_READY cb);
